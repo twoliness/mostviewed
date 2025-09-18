@@ -1,0 +1,246 @@
+/// <reference types="@cloudflare/workers-types" />
+
+
+
+
+export class DatabaseService {
+  constructor(db) {
+    this.db = db;
+  }
+
+  /**
+   * Insert or update a video record
+   */
+  async upsertVideo(video) {
+    console.log(`[Database] Upserting video: ${video.id} - ${video.title.substring(0, 50)}...`);
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        title = excluded.title,
+        channel_title = excluded.channel_title,
+        thumb_url = excluded.thumb_url,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    try {
+      await stmt.bind(
+        video.id,
+        video.title,
+        video.channel_id,
+        video.channel_title,
+        video.category_id,
+        video.published_at,
+        video.thumb_url,
+        video.duration,
+        video.is_short ? 1 : 0
+      ).run();
+      
+      console.log(`[Database] Successfully upserted video: ${video.id}`);
+    } catch (error) {
+      console.error(`[Database] Error upserting video ${video.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Insert video statistics
+   */
+  async insertVideoStats(stats) {
+    console.log(`[Database] Inserting stats for video: ${stats.video_id}, views: ${stats.view_count}`);
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO video_stats (video_id, captured_at, view_count, like_count, comment_count)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    try {
+      await stmt.bind(
+        stats.video_id,
+        stats.captured_at,
+        stats.view_count,
+        stats.like_count,
+        stats.comment_count
+      ).run();
+      
+      console.log(`[Database] Successfully inserted stats for video: ${stats.video_id}`);
+    } catch (error) {
+      console.error(`[Database] Error inserting stats for video ${stats.video_id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get global top 10 leaderboard with latest stats
+   */
+  async getGlobalLeaderboard(limit= 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.channel_title,
+        v.thumb_url,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get category-specific leaderboard
+   */
+  async getCategoryLeaderboard(categoryId, limit= 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.channel_title,
+        v.thumb_url,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.category_id = ?
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(categoryId, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get shorts leaderboard
+   */
+  async getShortsLeaderboard(limit= 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.channel_title,
+        v.thumb_url,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.is_short = 1
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get all categories
+   */
+  async getCategories() {
+    const stmt = this.db.prepare(`
+      SELECT id, name, slug FROM categories ORDER BY name
+    `);
+
+    const result = await stmt.all();
+    return result.results;
+  }
+
+  /**
+   * Get category by slug
+   */
+  async getCategoryBySlug(slug) {
+    const stmt = this.db.prepare(`
+      SELECT id, name, slug FROM categories WHERE slug = ?
+    `);
+
+    const result = await stmt.bind(slug).first();
+    return result;
+  }
+
+  /**
+   * Batch insert/update videos and their stats
+   */
+  async batchUpsertVideosWithStats(data) {
+    console.log(`[Database] Starting batch upsert of ${data.length} videos with stats`);
+    const capturedAt = new Date().toISOString();
+
+    try {
+      // Use a transaction for better performance and consistency
+      const transaction = this.db.batch([
+        // Upsert videos
+        ...data.map(({ video }) => 
+          this.db.prepare(`
+            INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+              title = excluded.title,
+              channel_title = excluded.channel_title,
+              thumb_url = excluded.thumb_url,
+              updated_at = CURRENT_TIMESTAMP
+          `).bind(
+            video.id,
+            video.title,
+            video.channel_id,
+            video.channel_title,
+            video.category_id,
+            video.published_at,
+            video.thumb_url,
+            video.duration,
+            video.is_short ? 1 : 0
+          )
+        ),
+        // Insert stats
+        ...data.map(({ stats }) =>
+          this.db.prepare(`
+            INSERT INTO video_stats (video_id, captured_at, view_count, like_count, comment_count)
+            VALUES (?, ?, ?, ?, ?)
+          `).bind(
+            stats.video_id,
+            capturedAt,
+            stats.view_count,
+            stats.like_count,
+            stats.comment_count
+          )
+        )
+      ]);
+
+      await transaction;
+      console.log(`[Database] Successfully batch upserted ${data.length} videos with stats`);
+      
+      // Log some sample data for verification
+      if (data.length > 0) {
+        console.log(`[Database] Sample video: ${data[0].video.id} - ${data[0].video.title.substring(0, 50)}... (${data[0].stats.view_count} views)`);
+      }
+    } catch (error) {
+      console.error(`[Database] Error in batch upsert of ${data.length} videos:`, error);
+      throw error;
+    }
+  }
+}
