@@ -72,18 +72,11 @@ export function getCategoryIcon(categoryId) {
     26: '💄', // Howto & Style
     23: '😂', // Comedy
     22: '👥', // People & Blogs
-    27: '📚', // Education
     28: '🔬', // Science & Technology
     1: '🎬',  // Film & Animation
     2: '🚗',  // Autos & Vehicles
     15: '🐾', // Pets & Animals
-    19: '✈️', // Travel & Events
-    21: '📹', // Videoblogging
     29: '🤝', // Nonprofits & Activism
-    30: '🍿', // Movies
-    31: '🌟', // Anime/Animation
-    34: '📖', // Documentary
-    35: '🎭', // Drama
   };
   
   return iconMap[categoryId] || '📺';

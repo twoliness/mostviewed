@@ -100,6 +100,27 @@ export class YouTubeApiService {
   }
 
   /**
+   * Get YouTube Shorts for a specific category
+   */
+  async getMostPopularShortsByCategory(categoryId, maxResults = 50) {
+    console.log(`[YouTube API] Fetching YouTube Shorts for category ${categoryId}, target: ${maxResults} shorts`);
+    
+    // Fetch more videos to filter for shorts
+    const fetchCount = maxResults * 3; // Need more videos since shorts are less common in some categories
+    console.log(`[YouTube API] Fetching ${fetchCount} videos from category ${categoryId} to filter for shorts`);
+    const allVideos = await this.getMostPopularVideosByCategory(categoryId, fetchCount);
+    
+    // Filter for videos under 60 seconds
+    const shorts = allVideos.filter(video => {
+      const durationSeconds = this.parseDuration(video.contentDetails.duration);
+      return durationSeconds <= 60 && durationSeconds > 0;
+    });
+
+    console.log(`[YouTube API] Found ${shorts.length} shorts from ${allVideos.length} videos in category ${categoryId}, returning ${Math.min(shorts.length, maxResults)}`);
+    return shorts.slice(0, maxResults);
+  }
+
+  /**
    * Transform YouTube video to our database format
    * Returns null if video doesn't have valid view count
    */
@@ -135,26 +156,27 @@ export class YouTubeApiService {
   }
 }
 
-// Popular categories for the leaderboards (top 20 as mentioned in PRD)
+// Popular categories for the leaderboards - only working categories
 export const POPULAR_CATEGORIES = [
-  10, // Music
-  20, // Gaming  
-  17, // Sports
-  24, // Entertainment
-  25, // News & Politics
-  26, // Howto & Style
-  23, // Comedy
-  22, // People & Blogs
-  27, // Education
-  28, // Science & Technology
-  1,  // Film & Animation
-  2,  // Autos & Vehicles
-  15, // Pets & Animals
-  19, // Travel & Events
-  21, // Videoblogging
-  29, // Nonprofits & Activism
-  30, // Movies
-  31, // Anime/Animation
-  34, // Documentary
-  35, // Drama
+  10, // Music - ✅ Working
+  20, // Gaming - ✅ Working  
+  17, // Sports - ✅ Working
+  24, // Entertainment - ✅ Working
+  25, // News & Politics - ✅ Working
+  26, // Howto & Style - ✅ Working
+  23, // Comedy - ✅ Working
+  22, // People & Blogs - ✅ Working
+  28, // Science & Technology - ✅ Working
+  1,  // Film & Animation - ✅ Working
+  2,  // Autos & Vehicles - ✅ Working
+  15, // Pets & Animals - ✅ Working
+  29, // Nonprofits & Activism - ✅ Working (low volume but works)
+  // Removed problematic categories:
+  // 27, // Education - 404 Not Found
+  // 19, // Travel & Events - 404 Not Found  
+  // 21, // Videoblogging - 400 Bad Request
+  // 30, // Movies - 400 Bad Request
+  // 31, // Anime/Animation - 400 Bad Request
+  // 34, // Documentary - 400 Bad Request
+  // 35, // Drama - 400 Bad Request
 ];

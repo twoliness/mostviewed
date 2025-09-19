@@ -26,10 +26,11 @@ export async function POST(request) {
 
     // Collect trending videos for each popular category
     let totalCategoryVideos = 0;
+    let totalCategoryShorts = 0;
     for (const categoryId of POPULAR_CATEGORIES) {
       try {
         console.log(`[API] Fetching trending videos for category ${categoryId}...`);
-        const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 50);
+        const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 75);
         
         if (categoryVideos.length > 0) {
           const categoryData = categoryVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
@@ -37,6 +38,22 @@ export async function POST(request) {
             await db.batchUpsertVideosWithStats(categoryData);
             console.log(`[API] Inserted ${categoryData.length} videos for category ${categoryId}`);
             totalCategoryVideos += categoryData.length;
+          }
+        }
+
+        // Add a small delay to respect API rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Collect shorts for this category
+        console.log(`[API] Fetching trending shorts for category ${categoryId}...`);
+        const categoryShorts = await youtube.getMostPopularShortsByCategory(categoryId, 30);
+        
+        if (categoryShorts.length > 0) {
+          const shortsData = categoryShorts.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
+          if (shortsData.length > 0) {
+            await db.batchUpsertVideosWithStats(shortsData);
+            console.log(`[API] Inserted ${shortsData.length} shorts for category ${categoryId}`);
+            totalCategoryShorts += shortsData.length;
           }
         }
 
@@ -53,7 +70,7 @@ export async function POST(request) {
     console.log('[API] Fetching trending Shorts...');
     let shortsCount = 0;
     try {
-      const shortsVideos = await youtube.getMostPopularShorts(50);
+      const shortsVideos = await youtube.getMostPopularShorts(75);
       
       if (shortsVideos.length > 0) {
         const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
@@ -76,8 +93,9 @@ export async function POST(request) {
       statistics: {
         globalVideos: globalData.length,
         categoryVideos: totalCategoryVideos,
-        shortsVideos: shortsCount,
-        totalVideos: globalData.length + totalCategoryVideos + shortsCount,
+        categoryShorts: totalCategoryShorts,
+        globalShorts: shortsCount,
+        totalVideos: globalData.length + totalCategoryVideos + totalCategoryShorts + shortsCount,
         categoriesProcessed: POPULAR_CATEGORIES.length
       }
     };
