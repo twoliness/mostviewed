@@ -2,6 +2,9 @@
  * Format view count for display (e.g., 1234567 -> "1.2M views")
  */
 export function formatViewCount(count) {
+  if (!count || count === 0) {
+    return 'No views';
+  }
   if (count >= 1000000000) {
     return `${(count / 1000000000).toFixed(1)}B views`;
   } else if (count >= 1000000) {

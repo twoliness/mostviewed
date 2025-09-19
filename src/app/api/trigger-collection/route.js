@@ -18,7 +18,7 @@ export async function POST(request) {
     const globalVideos = await youtube.getMostPopularVideos(50);
     
     // Transform and prepare for batch insert
-    const globalData = globalVideos.map(video => youtube.transformToDbFormat(video));
+    const globalData = globalVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
     
     // Batch insert global videos
     await db.batchUpsertVideosWithStats(globalData);
@@ -32,10 +32,12 @@ export async function POST(request) {
         const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 50);
         
         if (categoryVideos.length > 0) {
-          const categoryData = categoryVideos.map(video => youtube.transformToDbFormat(video));
-          await db.batchUpsertVideosWithStats(categoryData);
-          console.log(`[API] Inserted ${categoryData.length} videos for category ${categoryId}`);
-          totalCategoryVideos += categoryData.length;
+          const categoryData = categoryVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
+          if (categoryData.length > 0) {
+            await db.batchUpsertVideosWithStats(categoryData);
+            console.log(`[API] Inserted ${categoryData.length} videos for category ${categoryId}`);
+            totalCategoryVideos += categoryData.length;
+          }
         }
 
         // Add a small delay to respect API rate limits
@@ -54,10 +56,12 @@ export async function POST(request) {
       const shortsVideos = await youtube.getMostPopularShorts(50);
       
       if (shortsVideos.length > 0) {
-        const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video));
-        await db.batchUpsertVideosWithStats(shortsData);
-        console.log(`[API] Inserted ${shortsData.length} trending Shorts`);
-        shortsCount = shortsData.length;
+        const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
+        if (shortsData.length > 0) {
+          await db.batchUpsertVideosWithStats(shortsData);
+          console.log(`[API] Inserted ${shortsData.length} trending Shorts`);
+          shortsCount = shortsData.length;
+        }
       }
     } catch (error) {
       console.error('[API] Error fetching Shorts:', error);

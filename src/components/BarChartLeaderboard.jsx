@@ -7,11 +7,14 @@ export default function BarChartLeaderboard({
   loading = false, 
   error = null,
   lastUpdated = null,
-  icon = '🏆'
+  icon = '🏆',
+  isGlobal = false
 }) {
+  const backgroundClass = isGlobal ? 'bg-amber-50 border-amber-200' : 'bg-white dark:bg-gray-800 border-gray-200';
+  
   if (loading) {
     return (
-      <div className="bg-amber-50 rounded-lg p-6">
+      <div className={`${backgroundClass} rounded-lg p-6`}>
         <div className="flex items-center space-x-2 mb-6">
           <span className="text-2xl">{icon}</span>
           <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
@@ -33,7 +36,7 @@ export default function BarChartLeaderboard({
 
   if (error) {
     return (
-      <div className="bg-amber-50 rounded-lg p-6">
+      <div className={`${backgroundClass} rounded-lg p-6`}>
         <div className="text-center py-8">
           <div className="text-red-500 text-lg mb-2">❌ Error loading {title.toLowerCase()}</div>
           <p className="text-gray-600">{error}</p>
@@ -44,7 +47,7 @@ export default function BarChartLeaderboard({
 
   if (!videos || videos.length === 0) {
     return (
-      <div className="bg-amber-50 rounded-lg p-6">
+      <div className={`${backgroundClass} rounded-lg p-6`}>
         <div className="text-center py-8">
           <div className="text-gray-500 text-lg">📭 No videos available</div>
           <p className="text-gray-600">Check back later for updates</p>
@@ -53,11 +56,11 @@ export default function BarChartLeaderboard({
     );
   }
 
-  // Find max views for bar scaling
-  const maxViews = Math.max(...videos.map(v => v.view_count));
+  // Find max views for bar scaling - ensure it's never 0
+  const maxViews = Math.max(...videos.map(v => v.view_count)) || 1;
 
   return (
-    <div className="bg-amber-50 rounded-lg p-6 border border-amber-200">
+    <div className={`${backgroundClass} rounded-lg p-6 border`}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <span className="text-2xl">{icon}</span>

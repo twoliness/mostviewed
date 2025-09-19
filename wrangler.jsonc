@@ -33,7 +33,7 @@
 	],
 	// vars are loaded from .dev.vars for development
 	"triggers": {
-		"crons": ["0 */30 * * * *"]
+		"crons": ["*/30 * * * *"]
 	}
 	/**
 	 * Smart Placement

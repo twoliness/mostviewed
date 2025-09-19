@@ -15,14 +15,14 @@ const barColors = [
 ];
 
 export default function BarChartCard({ video, rank, maxViews }) {
-  // Calculate bar width as percentage of max views
-  const barWidth = (video.view_count / maxViews) * 100;
+  // Calculate bar width as percentage of max views - handle division by zero
+  const barWidth = maxViews > 0 ? (video.view_count / maxViews) * 100 : 0;
   const barColor = barColors[(rank - 1) % barColors.length];
 
   return (
     <div className="flex items-stretch py-1 relative">
       {/* Thumbnail on the left - same height as bar */}
-      <div className="w-12 h-12 mr-3 relative z-10 flex-shrink-0">
+      <div className="w-12 h-12 mr-3 relative z-10" style={{ flexShrink: 0 }}>
         <a 
           href={getYouTubeUrl(video.id)}
           target="_blank"
@@ -36,7 +36,7 @@ export default function BarChartCard({ video, rank, maxViews }) {
             height={48}
             className="rounded object-cover hover:opacity-90 transition-opacity h-full w-full"
           />
-          {video.is_short && (
+          {!!video.is_short && (
             <div className="absolute top-0 left-0 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
               SHORT
             </div>

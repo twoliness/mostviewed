@@ -43,12 +43,24 @@ export default function Home() {
           const response = await fetch(`/api/leaderboard/category/${category.slug}`);
           if (response.ok) {
             const data = await response.json();
-            return { [category.slug]: data.slice(0, 5) }; // Get top 5 for each category
+            // Separate shorts and regular videos
+            const regularVideos = data.filter(video => !video.is_short).slice(0, 5);
+            const shortsVideos = data.filter(video => video.is_short).slice(0, 5);
+            return { 
+              [category.slug]: regularVideos,
+              [`${category.slug}_shorts`]: shortsVideos 
+            };
           }
-          return { [category.slug]: [] };
+          return { 
+            [category.slug]: [],
+            [`${category.slug}_shorts`]: []
+          };
         } catch (err) {
           console.error(`Error fetching ${category.name}:`, err);
-          return { [category.slug]: [] };
+          return { 
+            [category.slug]: [],
+            [`${category.slug}_shorts`]: []
+          };
         }
       });
 
@@ -106,6 +118,7 @@ export default function Home() {
         error={error}
         lastUpdated={lastUpdated}
         icon="🏆"
+        isGlobal={true}
       />
 
       {/* Featured Categories */}
@@ -116,15 +129,29 @@ export default function Home() {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {featuredCategories.map((category) => (
-            <BarChartLeaderboard
-              key={category.slug}
-              title={`${category.name} Top 5`}
-              videos={categoryData[category.slug] || []}
-              loading={loading}
-              error={null}
-              lastUpdated={lastUpdated}
-              icon={getCategoryIcon(category.id)}
-            />
+            <div key={category.slug} className="space-y-6">
+              {/* Regular Videos */}
+              <BarChartLeaderboard
+                title={`${category.name} Top 5`}
+                videos={categoryData[category.slug] || []}
+                loading={loading}
+                error={null}
+                lastUpdated={lastUpdated}
+                icon={getCategoryIcon(category.id)}
+              />
+              
+              {/* Shorts for this category */}
+              {categoryData[`${category.slug}_shorts`] && categoryData[`${category.slug}_shorts`].length > 0 && (
+                <BarChartLeaderboard
+                  title={`${category.name} Shorts Top 5`}
+                  videos={categoryData[`${category.slug}_shorts`]}
+                  loading={loading}
+                  error={null}
+                  lastUpdated={lastUpdated}
+                  icon="📱"
+                />
+              )}
+            </div>
           ))}
         </div>
       </div>

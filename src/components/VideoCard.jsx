@@ -31,7 +31,7 @@ export default function VideoCard({ video, rank, compact = false, noShadow = fal
             height={thumbnailHeight}
             className="rounded-md object-cover hover:opacity-90 transition-opacity"
           />
-          {video.is_short && (
+          {!!video.is_short && (
             <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 text-white text-xs px-1 py-0.5 rounded">
               SHORT
             </div>

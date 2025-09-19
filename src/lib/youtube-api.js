@@ -101,8 +101,15 @@ export class YouTubeApiService {
 
   /**
    * Transform YouTube video to our database format
+   * Returns null if video doesn't have valid view count
    */
   transformToDbFormat(video) {
+    // Skip videos without valid view counts (should not happen with mostPopular API)
+    if (!video.statistics.viewCount || parseInt(video.statistics.viewCount) <= 0) {
+      console.warn(`[YouTube API] Skipping video ${video.id} - invalid view count: ${video.statistics.viewCount}`);
+      return null;
+    }
+
     const durationSeconds = this.parseDuration(video.contentDetails.duration);
     
     return {
