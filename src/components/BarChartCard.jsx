@@ -22,7 +22,7 @@ export default function BarChartCard({ video, rank, maxViews }) {
   return (
     <div className="flex items-stretch py-1 relative">
       {/* Thumbnail on the left - same height as bar */}
-      <div className="w-12 h-12 mr-3 relative z-10" style={{ flexShrink: 0 }}>
+      <div className="w-12 h-12 mr-3 relative" style={{ flexShrink: 0 }}>
         <a 
           href={getYouTubeUrl(video.id)}
           target="_blank"

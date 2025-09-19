@@ -72,7 +72,7 @@ export class DatabaseService {
   }
 
   /**
-   * Get global top 10 leaderboard with latest stats
+   * Get global top 10 leaderboard with latest stats (videos only, no shorts)
    */
   async getGlobalLeaderboard(limit= 10) {
     const stmt = this.db.prepare(`
@@ -92,6 +92,7 @@ export class DatabaseService {
         FROM video_stats
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.is_short = 0
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -182,6 +183,34 @@ export class DatabaseService {
 
     const result = await stmt.bind(slug).first();
     return result;
+  }
+
+  /**
+   * Get top creators by total views across all their videos
+   */
+  async getTopCreators(limit = 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.channel_id,
+        v.channel_title,
+        COUNT(DISTINCT v.id) as video_count,
+        SUM(vs.view_count) as total_views,
+        AVG(vs.view_count) as avg_views,
+        MAX(vs.captured_at) as latest_capture
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      GROUP BY v.channel_id, v.channel_title
+      ORDER BY total_views DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
   }
 
   /**

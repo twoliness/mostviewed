@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import BarChartLeaderboard from '@/components/BarChartLeaderboard';
+import Champions from '@/components/Champions';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils';
 
 export default function Home() {
   const [globalVideos, setGlobalVideos] = useState([]);
+  const [globalShorts, setGlobalShorts] = useState([]);
+  const [topCreators, setTopCreators] = useState([]);
   const [categoryData, setCategoryData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,6 +34,22 @@ export default function Home() {
       }
       const globalData = await globalResponse.json();
       setGlobalVideos(globalData);
+      
+      // Fetch global shorts
+      const shortsResponse = await fetch('/api/leaderboard/shorts');
+      if (!shortsResponse.ok) {
+        throw new Error(`Failed to fetch shorts: ${shortsResponse.status}`);
+      }
+      const shortsData = await shortsResponse.json();
+      setGlobalShorts(shortsData);
+      
+      // Fetch top creators
+      const creatorsResponse = await fetch('/api/creators/top');
+      if (!creatorsResponse.ok) {
+        throw new Error(`Failed to fetch creators: ${creatorsResponse.status}`);
+      }
+      const creatorsData = await creatorsResponse.json();
+      setTopCreators(creatorsData);
       
       // Set last updated to the most recent capture time
       if (globalData.length > 0) {
@@ -78,48 +97,38 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="text-center py-8 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-lg shadow-lg">
-        <h1 className="text-4xl font-bold mb-4">
-          🏆 YouTube Trending Leaderboard
-        </h1>
-        <p className="text-xl opacity-90 max-w-2xl mx-auto">
-          Discover the most popular YouTube videos updated every 30 minutes. 
-          Track global trends, explore categories, and find viral Shorts.
-        </p>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-          <div className="text-3xl mb-2">🌍</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Global Top 10</h3>
-          <p className="text-gray-600 dark:text-gray-400">Most viewed videos worldwide</p>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-          <div className="text-3xl mb-2">📂</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">20+ Categories</h3>
-          <p className="text-gray-600 dark:text-gray-400">Music, Gaming, Sports & more</p>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-          <div className="text-3xl mb-2">📱</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trending Shorts</h3>
-          <p className="text-gray-600 dark:text-gray-400">Most popular short-form content</p>
-        </div>
-      </div>
-
-      {/* Global Leaderboard */}
-      <BarChartLeaderboard
-        title="Global Top 10 Most Viewed"
-        videos={globalVideos}
+      {/* Champions Section */}
+      <Champions
+        creators={topCreators}
         loading={loading}
         error={error}
-        lastUpdated={lastUpdated}
-        icon="🏆"
-        isGlobal={true}
       />
+
+      {/* Global Rankings - 2 Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Global Video Leaderboard */}
+        <BarChartLeaderboard
+          title="Global Top 10 Videos"
+          videos={globalVideos}
+          loading={loading}
+          error={error}
+          lastUpdated={lastUpdated}
+          icon="🏆"
+          isGlobal={true}
+        />
+
+        {/* Global Shorts Leaderboard */}
+        <BarChartLeaderboard
+          title="Global Top 10 Shorts"
+          videos={globalShorts}
+          loading={loading}
+          error={error}
+          lastUpdated={lastUpdated}
+          icon="📱"
+          isGlobal={true}
+        />
+      </div>
 
       {/* Featured Categories */}
       <div className="space-y-8">
