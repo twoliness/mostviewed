@@ -16,6 +16,23 @@ export function formatViewCount(count) {
 }
 
 /**
+ * Format view count without "views" text (e.g., 1234567 -> "1.2M")
+ */
+export function formatViewCountShort(count) {
+  if (!count || count === 0) {
+    return '0';
+  }
+  if (count >= 1000000000) {
+    return `${(count / 1000000000).toFixed(1)}B`;
+  } else if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  } else if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
+/**
  * Format time ago (e.g., "2 hours ago")
  */
 export function formatTimeAgo(dateString) {

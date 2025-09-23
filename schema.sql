@@ -4,6 +4,7 @@
 CREATE TABLE videos (
     id TEXT PRIMARY KEY, -- YouTube video ID
     title TEXT NOT NULL,
+    description TEXT, -- Video description
     channel_id TEXT NOT NULL,
     channel_title TEXT NOT NULL,
     category_id INTEGER NOT NULL,
@@ -33,12 +34,29 @@ CREATE TABLE categories (
     slug TEXT NOT NULL UNIQUE -- URL-friendly name
 );
 
+-- Creators table to store channel profile data
+CREATE TABLE creators (
+    channel_id TEXT PRIMARY KEY, -- YouTube channel ID
+    channel_title TEXT NOT NULL,
+    description TEXT, -- Channel description
+    avatar_url TEXT, -- Channel profile picture URL
+    banner_url TEXT, -- Channel banner image URL
+    subscriber_count INTEGER, -- Subscriber count
+    video_count INTEGER, -- Total number of videos
+    view_count INTEGER, -- Total channel views
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX idx_videos_category_id ON videos(category_id);
 CREATE INDEX idx_videos_is_short ON videos(is_short);
 CREATE INDEX idx_video_stats_video_id ON video_stats(video_id);
 CREATE INDEX idx_video_stats_captured_at ON video_stats(captured_at);
 CREATE INDEX idx_categories_slug ON categories(slug);
+CREATE INDEX idx_creators_channel_id ON creators(channel_id);
+CREATE INDEX idx_creators_subscriber_count ON creators(subscriber_count);
+CREATE INDEX idx_creators_view_count ON creators(view_count);
 
 -- Insert YouTube categories
 INSERT INTO categories (id, name, slug) VALUES

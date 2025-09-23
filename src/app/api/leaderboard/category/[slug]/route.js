@@ -10,12 +10,17 @@ export async function GET(
   
   try {
     const context = getCloudflareContext();
-    const env = context.env;    
+    const env = context.env;
+    
+    // Get limit from query parameters (default: 10, max: 100)
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 100);
+    
     // Check cache first
-    const cacheKey = `/api/leaderboard/category/${slug}`;
+    const cacheKey = `/api/leaderboard/category/${slug}?limit=${limit}`;
     const cached = await env.VIDTRENDS_CACHE.get(cacheKey);
     if (cached) {
-      console.log(`[API] Returning cached category leaderboard for ${slug}`);
+      console.log(`[API] Returning cached category leaderboard for ${slug} (limit: ${limit})`);
       return new Response(cached, {
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +29,7 @@ export async function GET(
       });
     }
 
-    console.log(`[API] Fetching category leaderboard for ${slug} from database`);
+    console.log(`[API] Fetching category leaderboard for ${slug} from database (limit: ${limit})`);
     const db = new DatabaseService(env.DB);
     
     // Get category by slug
@@ -36,7 +41,7 @@ export async function GET(
       );
     }
     
-    const data = await db.getCategoryLeaderboard(category.id, 10);
+    const data = await db.getCategoryLeaderboard(category.id, limit);
     
     const response = JSON.stringify(data);
     

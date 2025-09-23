@@ -53,7 +53,7 @@ export class YouTubeApiService {
   /**
    * Fetch most popular videos for a specific category
    */
-  async getMostPopularVideosByCategory(categoryId, maxResults = 50) {
+  async getMostPopularVideosByCategory(categoryId, maxResults = 100) {
     console.log(`[YouTube API] Fetching ${maxResults} most popular videos for category ${categoryId}`);
     
     const url = new URL(`${this.baseUrl}/videos`);
@@ -121,6 +121,62 @@ export class YouTubeApiService {
   }
 
   /**
+   * Fetch channel details for multiple channels
+   */
+  async getChannelDetails(channelIds) {
+    if (!channelIds || channelIds.length === 0) return [];
+    
+    console.log(`[YouTube API] Fetching channel details for ${channelIds.length} channels`);
+    
+    // YouTube API allows up to 50 channel IDs per request
+    const batchSize = 50;
+    const results = [];
+    
+    for (let i = 0; i < channelIds.length; i += batchSize) {
+      const batchIds = channelIds.slice(i, i + batchSize);
+      
+      const url = new URL(`${this.baseUrl}/channels`);
+      url.searchParams.set('part', 'snippet,statistics');
+      url.searchParams.set('id', batchIds.join(','));
+      url.searchParams.set('key', this.apiKey);
+
+      console.log(`[YouTube API] Fetching batch ${Math.floor(i/batchSize) + 1}: ${batchIds.length} channels`);
+
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching channels: ${response.status} ${response.statusText}`);
+        continue; // Skip this batch but continue with others
+      }
+
+      const data = await response.json();
+      results.push(...data.items);
+      
+      console.log(`[YouTube API] Successfully fetched ${data.items.length} channels in this batch`);
+    }
+    
+    console.log(`[YouTube API] Total channels fetched: ${results.length}`);
+    return results;
+  }
+
+  /**
+   * Transform YouTube channel to our database format
+   */
+  transformChannelToDbFormat(channel) {
+    return {
+      channel_id: channel.id,
+      channel_title: channel.snippet.title,
+      description: channel.snippet.description || null,
+      avatar_url: channel.snippet.thumbnails.medium?.url || channel.snippet.thumbnails.default?.url || null,
+      banner_url: channel.snippet.thumbnails.banner?.url || null,
+      subscriber_count: channel.statistics.subscriberCount ? parseInt(channel.statistics.subscriberCount) : null,
+      video_count: channel.statistics.videoCount ? parseInt(channel.statistics.videoCount) : null,
+      view_count: channel.statistics.viewCount ? parseInt(channel.statistics.viewCount) : null,
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Transform YouTube video to our database format
    * Returns null if video doesn't have valid view count
    */
@@ -137,6 +193,7 @@ export class YouTubeApiService {
       video: {
         id: video.id,
         title: video.snippet.title,
+        description: video.snippet.description || null,
         channel_id: video.snippet.channelId,
         channel_title: video.snippet.channelTitle,
         category_id: parseInt(video.snippet.categoryId),

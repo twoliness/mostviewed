@@ -15,10 +15,11 @@ export class DatabaseService {
     console.log(`[Database] Upserting video: ${video.id} - ${video.title.substring(0, 50)}...`);
     
     const stmt = this.db.prepare(`
-      INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
+        description = excluded.description,
         channel_title = excluded.channel_title,
         thumb_url = excluded.thumb_url,
         updated_at = CURRENT_TIMESTAMP
@@ -28,6 +29,7 @@ export class DatabaseService {
       await stmt.bind(
         video.id,
         video.title,
+        video.description,
         video.channel_id,
         video.channel_title,
         video.category_id,
@@ -79,8 +81,10 @@ export class DatabaseService {
       SELECT 
         v.id,
         v.title,
+        v.description,
         v.channel_title,
         v.thumb_url,
+        v.duration,
         vs.view_count,
         v.category_id,
         v.is_short,
@@ -90,6 +94,7 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
+        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 0
@@ -109,8 +114,10 @@ export class DatabaseService {
       SELECT 
         v.id,
         v.title,
+        v.description,
         v.channel_title,
         v.thumb_url,
+        v.duration,
         vs.view_count,
         v.category_id,
         v.is_short,
@@ -120,9 +127,43 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
+        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
-      WHERE v.category_id = ?
+      WHERE v.category_id = ? AND v.is_short = 0
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(categoryId, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get category-specific shorts leaderboard
+   */
+  async getCategoryShortsLeaderboard(categoryId, limit= 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        WHERE captured_at > datetime('now', '-2 days')
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.category_id = ? AND v.is_short = 1
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -139,8 +180,10 @@ export class DatabaseService {
       SELECT 
         v.id,
         v.title,
+        v.description,
         v.channel_title,
         v.thumb_url,
+        v.duration,
         vs.view_count,
         v.category_id,
         v.is_short,
@@ -150,6 +193,7 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
+        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 1
@@ -186,7 +230,46 @@ export class DatabaseService {
   }
 
   /**
-   * Get top creators by total views across all their videos
+   * Insert or update a creator record
+   */
+  async upsertCreator(creator) {
+    console.log(`[Database] Upserting creator: ${creator.channel_id} - ${creator.channel_title}`);
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO creators (channel_id, channel_title, description, avatar_url, banner_url, subscriber_count, video_count, view_count, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(channel_id) DO UPDATE SET
+        channel_title = excluded.channel_title,
+        description = excluded.description,
+        avatar_url = excluded.avatar_url,
+        banner_url = excluded.banner_url,
+        subscriber_count = excluded.subscriber_count,
+        video_count = excluded.video_count,
+        view_count = excluded.view_count,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    try {
+      await stmt.bind(
+        creator.channel_id,
+        creator.channel_title,
+        creator.description,
+        creator.avatar_url,
+        creator.banner_url,
+        creator.subscriber_count,
+        creator.video_count,
+        creator.view_count
+      ).run();
+      
+      console.log(`[Database] Successfully upserted creator: ${creator.channel_id}`);
+    } catch (error) {
+      console.error(`[Database] Error upserting creator ${creator.channel_id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get top creators by total views across all their videos with creator profile data
    */
   async getTopCreators(limit = 10) {
     const stmt = this.db.prepare(`
@@ -196,7 +279,10 @@ export class DatabaseService {
         COUNT(DISTINCT v.id) as video_count,
         SUM(vs.view_count) as total_views,
         AVG(vs.view_count) as avg_views,
-        MAX(vs.captured_at) as latest_capture
+        MAX(vs.captured_at) as latest_capture,
+        c.description,
+        c.avatar_url,
+        c.subscriber_count
       FROM videos v
       INNER JOIN video_stats vs ON v.id = vs.video_id
       INNER JOIN (
@@ -204,6 +290,8 @@ export class DatabaseService {
         FROM video_stats
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      LEFT JOIN creators c ON v.channel_id = c.channel_id
+      WHERE v.channel_id IS NOT NULL AND v.channel_title IS NOT NULL
       GROUP BY v.channel_id, v.channel_title
       ORDER BY total_views DESC
       LIMIT ?
@@ -211,6 +299,68 @@ export class DatabaseService {
 
     const result = await stmt.bind(limit).all();
     return result.results;
+  }
+
+  /**
+   * Get count of unique creators in database
+   */
+  async getCreatorsCount() {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(DISTINCT v.channel_id) as creator_count
+      FROM videos v
+      WHERE v.channel_id IS NOT NULL AND v.channel_title IS NOT NULL
+    `);
+
+    const result = await stmt.first();
+    return result?.creator_count || 0;
+  }
+
+  /**
+   * Batch insert/update creators
+   */
+  async batchUpsertCreators(creators) {
+    console.log(`[Database] Starting batch upsert of ${creators.length} creators`);
+
+    try {
+      // Use a transaction for better performance and consistency
+      const transaction = this.db.batch(
+        creators.map(creator => 
+          this.db.prepare(`
+            INSERT INTO creators (channel_id, channel_title, description, avatar_url, banner_url, subscriber_count, video_count, view_count, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(channel_id) DO UPDATE SET
+              channel_title = excluded.channel_title,
+              description = excluded.description,
+              avatar_url = excluded.avatar_url,
+              banner_url = excluded.banner_url,
+              subscriber_count = excluded.subscriber_count,
+              video_count = excluded.video_count,
+              view_count = excluded.view_count,
+              updated_at = CURRENT_TIMESTAMP
+          `).bind(
+            creator.channel_id,
+            creator.channel_title,
+            creator.description,
+            creator.avatar_url,
+            creator.banner_url,
+            creator.subscriber_count,
+            creator.video_count,
+            creator.view_count
+          )
+        )
+      );
+
+      await transaction;
+      console.log(`[Database] Successfully batch upserted ${creators.length} creators`);
+      
+      // Log some sample data for verification
+      if (creators.length > 0) {
+        console.log(`[Database] Sample creator: ${creators[0].channel_id} - ${creators[0].channel_title} (${creators[0].subscriber_count} subscribers)`);
+      }
+    } catch (error) {
+      console.error(`[Database] Error in batch upsert of ${creators.length} creators:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -271,5 +421,60 @@ export class DatabaseService {
       console.error(`[Database] Error in batch upsert of ${data.length} videos:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Get videos for a specific creator/channel
+   */
+  async getCreatorVideos(channelId, limit = 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at,
+        v.published_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        WHERE captured_at > datetime('now', '-2 days')
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.channel_id = ?
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(channelId, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get top creators with their videos
+   */
+  async getTopCreatorsWithVideos(limit = 10, videosPerCreator = 5) {
+    // First get the top creators
+    const creators = await this.getTopCreators(limit);
+    
+    // Then get videos for each creator
+    const creatorsWithVideos = await Promise.all(
+      creators.map(async (creator) => {
+        const videos = await this.getCreatorVideos(creator.channel_id, videosPerCreator);
+        return {
+          ...creator,
+          videos: videos
+        };
+      })
+    );
+    
+    return creatorsWithVideos;
   }
 }

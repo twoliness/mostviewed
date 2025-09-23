@@ -2,133 +2,131 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import Leaderboard from '@/components/Leaderboard';
+import ModernChartHeader from '@/components/ModernChartHeader';
+import ModernChartRanking from '@/components/ModernChartRanking';
+import Footer from '@/components/Footer';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
-import { getCategoryIcon } from '@/lib/utils';
 
 export default function CategoryPage() {
   const params = useParams();
   const { slug } = params;
   
   const [categoryVideos, setCategoryVideos] = useState([]);
+  const [categoryShorts, setCategoryShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [category, setCategory] = useState(null);
 
   useEffect(() => {
-    if (slug) {
-      // Find category info
-      const categoryInfo = POPULAR_CATEGORIES_DISPLAY.find(cat => cat.slug === slug);
-      setCategory(categoryInfo);
-      fetchCategoryLeaderboard();
-    }
-  }, [slug]);
-
-  const fetchCategoryLeaderboard = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/leaderboard/category/${slug}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Category not found');
+    if (!slug) return;
+    
+    // Find category info
+    const categoryInfo = POPULAR_CATEGORIES_DISPLAY.find(cat => cat.slug === slug);
+    setCategory(categoryInfo);
+    
+    // Fetch category data
+    const fetchCategoryData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch category videos (limit 100)
+        const videosResponse = await fetch(`/api/leaderboard/category/${slug}?limit=100`);
+        if (!videosResponse.ok) {
+          if (videosResponse.status === 404) {
+            throw new Error('Category not found');
+          }
+          throw new Error(`Failed to fetch videos: ${videosResponse.status}`);
         }
-        throw new Error(`Failed to fetch: ${response.status}`);
+        const videosData = await videosResponse.json();
+        
+        // Ensure videosData is an array
+        if (!Array.isArray(videosData)) {
+          console.error('API returned non-array data:', videosData);
+          throw new Error('Invalid data format received from API');
+        }
+        
+        // Separate videos and shorts from the response
+        const regularVideos = videosData.filter(video => video && video.is_short === 0);
+        const shortsVideos = videosData.filter(video => video && video.is_short === 1);
+        
+        
+        setCategoryVideos(regularVideos || []);
+        setCategoryShorts(shortsVideos || []);
+        
+        // Set last updated to the most recent capture time
+        if (videosData.length > 0) {
+          setLastUpdated(videosData[0].captured_at);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching category data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-      
-      const data = await response.json();
-      setCategoryVideos(data);
-      
-      // Set last updated to the most recent capture time
-      if (data.length > 0) {
-        setLastUpdated(data[0].captured_at);
-      }
-      
-    } catch (err) {
-      console.error('Error fetching category leaderboard:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    fetchCategoryData();
+  }, [slug]);
 
   if (!category && !loading) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">❌</div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Category Not Found
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          The category &quot;{slug}&quot; doesn&apos;t exist or isn&apos;t supported yet.
-        </p>
+      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
+        <ModernChartHeader />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Category Not Found
+            </h1>
+            <p className="text-gray-600">
+              The category &quot;{slug}&quot; doesn&apos;t exist or isn&apos;t supported yet.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   const categoryName = category?.name || 'Category';
-  const categoryIcon = category ? getCategoryIcon(category.id) : '📂';
 
   return (
-    <div className="space-y-8">
-      {/* Category Header */}
-      <div className="text-center py-8 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg">
-        <div className="text-6xl mb-4">{categoryIcon}</div>
-        <h1 className="text-4xl font-bold mb-4">
-          {categoryName} Trending
-        </h1>
-        <p className="text-xl opacity-90 max-w-2xl mx-auto">
-          Discover the most popular {categoryName.toLowerCase()} videos on YouTube right now
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
+      {/* Modern Header */}
+      <ModernChartHeader />
 
-      {/* Category Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-          <div className="text-3xl mb-2">📊</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top 10 Videos</h3>
-          <p className="text-gray-600 dark:text-gray-400">Most viewed in {categoryName}</p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Category Videos Chart (Top 100) */}
+        <div className="mb-12">
+          <ModernChartRanking
+            videos={categoryVideos || []}
+            title={categoryName}
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            isShorts={false}
+            showStats={true}
+          />
         </div>
-        
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-          <div className="text-3xl mb-2">🔄</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Updated Every 30min</h3>
-          <p className="text-gray-600 dark:text-gray-400">Fresh trending data</p>
-        </div>
-      </div>
 
-      {/* Category Leaderboard */}
-      <Leaderboard
-        title={`Top 10 ${categoryName} Videos`}
-        videos={categoryVideos}
-        loading={loading}
-        error={error}
-        lastUpdated={lastUpdated}
-        icon={categoryIcon}
-        compact={true}
-      />
+        {/* Category Shorts Chart (if any) */}
+        {categoryShorts && categoryShorts.length > 0 && (
+          <div className="mb-12">
+            <ModernChartRanking
+              videos={categoryShorts || []}
+              title={`${categoryName} Shorts`}
+              loading={loading}
+              error={error}
+              lastUpdated={lastUpdated}
+              isShorts={true}
+              showStats={true}
+            />
+          </div>
+        )}
 
-      {/* Other Categories */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          🔍 Explore Other Categories
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {POPULAR_CATEGORIES_DISPLAY.filter(cat => cat.slug !== slug).slice(0, 12).map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/category/${cat.slug}`}
-              className="flex items-center space-x-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
-            >
-              <span>{getCategoryIcon(cat.id)}</span>
-              <span className="text-gray-700 dark:text-gray-300">{cat.name}</span>
-            </Link>
-          ))}
-        </div>
+        <Footer />
       </div>
     </div>
   );

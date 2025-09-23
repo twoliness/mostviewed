@@ -8,8 +8,8 @@ export default function Champions({
   if (loading) {
     return (
       <div className="mb-8">
-        <h2 className="text-4xl font-bold text-center text-gray-400 mb-8 opacity-20">
-          Champions
+        <h2 className="text-8xl font-bold text-center text-gray-200 mb-8 opacity-30">
+          Top Creators
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -70,22 +70,18 @@ export default function Champions({
 
   return (
     <div className="mb-12">
-      {/* Champions Title */}
+      {/* Top Creators Title */}
       <div className="text-center mb-8 relative">
-        <h2 className="text-6xl font-bold text-gray-300 opacity-20 absolute inset-0 flex items-center justify-center">
-          Champions
-        </h2>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white relative z-10 pt-4">
-          🏆 Top Creators
+        <h2 className="text-8xl font-bold text-gray-200 opacity-30">
+          Top Creators
         </h2>
       </div>
       
-      {/* Champions Cards */}
+      {/* Creator Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {creators.slice(0, 3).map((creator, index) => {
           const rank = index + 1;
           const design = getChampionDesign(rank);
-          const avatarGradient = getCreatorAvatar(creator);
           
           return (
             <a
@@ -93,66 +89,76 @@ export default function Champions({
               target="_blank"
               rel="noopener noreferrer"
               key={creator.channel_id} 
-              className={`${design.gradient} ${design.order} ${design.size} rounded-2xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative overflow-hidden cursor-pointer block`}
+              className="bg-white border border-gray-200 rounded-2xl p-6 text-center relative overflow-hidden cursor-pointer block transition-transform hover:scale-105"
             >
-              {/* Position Badge */}
-              <div className="absolute top-4 right-4">
-                <div className={`${design.badge} px-3 py-1 rounded-full text-sm font-bold shadow-md`}>
-                  {design.position}
-                </div>
-              </div>
-
-              {/* Large Position Number */}
-              <div className="absolute top-8 left-8 text-6xl font-black text-white text-opacity-30">
+              {/* Position Number */}
+              <div className="absolute top-6 left-6 text-6xl font-black text-gray-200">
                 {rank}
               </div>
               
-              {/* Creator Avatar - Hexagonal */}
-              <div className="relative mx-auto mb-6" style={{ width: '96px', height: '96px' }}>
-                <div 
-                  className={`${avatarGradient} w-full h-full flex items-center justify-center text-white font-bold text-2xl shadow-lg`}
-                  style={{
-                    clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
-                  }}
-                >
-                  {creator.channel_title.charAt(0).toUpperCase()}
+              {/* Position Badge */}
+              <div className="absolute top-4 right-4">
+                <div className="bg-gray-900 text-white px-3 py-1 rounded text-sm font-bold">
+                  ✕ {83 - index * 3}
                 </div>
+              </div>
+
+              {/* Creator Avatar - Hexagonal */}
+              <div className="relative mx-auto mb-4 mt-8" style={{ width: '80px', height: '80px' }}>
+                {creator.avatar_url ? (
+                  <div 
+                    className="bg-white w-full h-full bg-cover bg-center"
+                    style={{
+                      clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                      backgroundImage: `url(${creator.avatar_url})`
+                    }}
+                  />
+                ) : (
+                  <div 
+                    className="bg-white w-full h-full flex items-center justify-center text-gray-800 font-bold text-2xl"
+                    style={{
+                      clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+                    }}
+                  >
+                    {creator.channel_title.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
 
               {/* Creator Info */}
               <div className="relative z-10">
-                <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">
-                  {creator.channel_title}
+                <h3 className="font-bold text-lg text-black mb-1 truncate">
+                  {creator.channel_title} ✓
                 </h3>
-                <p className="text-gray-700 text-sm mb-4 opacity-80">
+                <p className="text-blue-600 text-sm mb-4 font-medium">
                   Content Creator
                 </p>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="text-center">
-                    <div className="font-bold text-lg text-gray-900">
+                    <div className="font-bold text-2xl text-black">
                       {creator.video_count}
                     </div>
-                    <div className="text-xs text-gray-700 opacity-80">
+                    <div className="text-sm text-gray-600">
                       Videos
                     </div>
                   </div>
                   
                   <div className="text-center">
-                    <div className="font-bold text-lg text-gray-900">
-                      {Math.round(creator.total_views / 1000000)}M
+                    <div className="font-bold text-2xl text-black">
+                      {creator.subscriber_count ? Math.round(creator.subscriber_count / 1000000) + 'M' : Math.round(creator.total_views / 1000000)}
                     </div>
-                    <div className="text-xs text-gray-700 opacity-80">
-                      Total Views
+                    <div className="text-sm text-gray-600">
+                      {creator.subscriber_count ? 'Subscribers' : 'Total Views'}
                     </div>
                   </div>
                   
                   <div className="text-center">
-                    <div className="font-bold text-lg text-gray-900">
-                      {Math.round((creator.total_views / creator.video_count / 1000000) * 10) / 10}M
+                    <div className="font-bold text-2xl text-black">
+                      {Math.round((creator.total_views / creator.video_count / 1000000) * 100)}%
                     </div>
-                    <div className="text-xs text-gray-700 opacity-80">
+                    <div className="text-sm text-gray-600">
                       Avg Views
                     </div>
                   </div>

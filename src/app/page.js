@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import BarChartLeaderboard from '@/components/BarChartLeaderboard';
-import Champions from '@/components/Champions';
+import ModernChartHeader from '@/components/ModernChartHeader';
+import ModernChartRanking from '@/components/ModernChartRanking';
+import Footer from '@/components/Footer';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils';
 
 export default function Home() {
   const [globalVideos, setGlobalVideos] = useState([]);
   const [globalShorts, setGlobalShorts] = useState([]);
-  const [topCreators, setTopCreators] = useState([]);
   const [categoryData, setCategoryData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,13 +43,6 @@ export default function Home() {
       const shortsData = await shortsResponse.json();
       setGlobalShorts(shortsData);
       
-      // Fetch top creators
-      const creatorsResponse = await fetch('/api/creators/top');
-      if (!creatorsResponse.ok) {
-        throw new Error(`Failed to fetch creators: ${creatorsResponse.status}`);
-      }
-      const creatorsData = await creatorsResponse.json();
-      setTopCreators(creatorsData);
       
       // Set last updated to the most recent capture time
       if (globalData.length > 0) {
@@ -65,20 +58,31 @@ export default function Home() {
             // Separate shorts and regular videos
             const regularVideos = data.filter(video => !video.is_short).slice(0, 5);
             const shortsVideos = data.filter(video => video.is_short).slice(0, 5);
+            
+            // Map category slugs to chart navigation slugs
+            const chartSlug = category.slug.replace('-', '-');
+            
             return { 
               [category.slug]: regularVideos,
-              [`${category.slug}_shorts`]: shortsVideos 
+              [`${category.slug}_shorts`]: shortsVideos,
+              // Also store with chart navigation compatible names
+              [chartSlug]: regularVideos,
+              [`${chartSlug}_shorts`]: shortsVideos
             };
           }
           return { 
             [category.slug]: [],
-            [`${category.slug}_shorts`]: []
+            [`${category.slug}_shorts`]: [],
+            [category.slug.replace('-', '-')]: [],
+            [`${category.slug.replace('-', '-')}_shorts`]: []
           };
         } catch (err) {
           console.error(`Error fetching ${category.name}:`, err);
           return { 
             [category.slug]: [],
-            [`${category.slug}_shorts`]: []
+            [`${category.slug}_shorts`]: [],
+            [category.slug.replace('-', '-')]: [],
+            [`${category.slug.replace('-', '-')}_shorts`]: []
           };
         }
       });
@@ -95,79 +99,81 @@ export default function Home() {
     }
   };
 
+
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
+      {/* Modern Header */}
+      <ModernChartHeader />
 
-      {/* Champions Section */}
-      <Champions
-        creators={topCreators}
-        loading={loading}
-        error={error}
-      />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {/* Global Rankings - 2 Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Global Video Leaderboard */}
-        <BarChartLeaderboard
-          title="Global Top 10 Videos"
-          videos={globalVideos}
-          loading={loading}
-          error={error}
-          lastUpdated={lastUpdated}
-          icon="🏆"
-          isGlobal={true}
-        />
+        {/* Global Videos */}
+        <div className="mb-12">
+          <ModernChartRanking
+            videos={globalVideos}
+            title="Global Videos"
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            isShorts={false}
+            showStats={true}
+          />
+        </div>
 
-        {/* Global Shorts Leaderboard */}
-        <BarChartLeaderboard
-          title="Global Top 10 Shorts"
-          videos={globalShorts}
-          loading={loading}
-          error={error}
-          lastUpdated={lastUpdated}
-          icon="📱"
-          isGlobal={true}
-        />
-      </div>
+        {/* Global Shorts */}
+        <div className="mb-12">
+          <ModernChartRanking
+            videos={globalShorts}
+            title="Global Shorts"
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            isShorts={true}
+            showStats={true}
+          />
+        </div>
 
-      {/* Featured Categories */}
-      <div className="space-y-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
-          🔥 Trending by Category
-        </h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {featuredCategories.map((category) => (
-            <div key={category.slug} className="space-y-6">
-              {/* Regular Videos */}
-              <BarChartLeaderboard
-                title={`${category.name} Top 5`}
-                videos={categoryData[category.slug] || []}
-                loading={loading}
-                error={null}
-                lastUpdated={lastUpdated}
-                icon={getCategoryIcon(category.id)}
-              />
-              
-              {/* Shorts for this category */}
-              {categoryData[`${category.slug}_shorts`] && categoryData[`${category.slug}_shorts`].length > 0 && (
-                <BarChartLeaderboard
-                  title={`${category.name} Shorts Top 5`}
-                  videos={categoryData[`${category.slug}_shorts`]}
+        {/* Featured Categories Section */}
+        <div className="space-y-12 mb-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Featured Categories
+            </h2>
+            <p className="text-gray-600">Discover trending content across different topics</p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {featuredCategories.map((category) => (
+              <div key={category.slug} className="space-y-8">
+                {/* Regular Videos */}
+                <ModernChartRanking
+                  videos={categoryData[category.slug] || []}
+                  title={category.name}
                   loading={loading}
                   error={null}
                   lastUpdated={lastUpdated}
-                  icon="📱"
+                  isShorts={false}
+                  showStats={false}
+                  categorySlug={category.slug}
                 />
-              )}
-            </div>
-          ))}
+                
+                {/* Shorts for this category */}
+                {categoryData[`${category.slug}_shorts`] && categoryData[`${category.slug}_shorts`].length > 0 && (
+                  <ModernChartRanking
+                    videos={categoryData[`${category.slug}_shorts`]}
+                    title={`${category.name} Shorts`}
+                    loading={loading}
+                    error={null}
+                    lastUpdated={lastUpdated}
+                    isShorts={true}
+                    showStats={false}
+                    categorySlug={category.slug}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-        <p>Data refreshed every 30 minutes • Powered by YouTube Data API</p>
       </div>
     </div>
   );
