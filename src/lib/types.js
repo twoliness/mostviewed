@@ -14,5 +14,4 @@ export const POPULAR_CATEGORIES_DISPLAY = [
   { id: 1, name: 'Film & Animation', slug: 'film-animation' },
   { id: 2, name: 'Autos & Vehicles', slug: 'autos-vehicles' },
   { id: 15, name: 'Pets & Animals', slug: 'pets-animals' },
-  { id: 29, name: 'Nonprofits & Activism', slug: 'nonprofits-activism' },
 ];

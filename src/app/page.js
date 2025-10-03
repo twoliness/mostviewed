@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ModernChartHeader from '@/components/ModernChartHeader';
 import ModernChartRanking from '@/components/ModernChartRanking';
-import Footer from '@/components/Footer';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
-import { getCategoryIcon } from '@/lib/utils';
 
 export default function Home() {
+  const router = useRouter();
   const [globalVideos, setGlobalVideos] = useState([]);
   const [globalShorts, setGlobalShorts] = useState([]);
   const [categoryData, setCategoryData] = useState({});
@@ -15,8 +15,8 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Select the most popular categories to display
-  const featuredCategories = POPULAR_CATEGORIES_DISPLAY.slice(0, 6); // Music, Gaming, Sports, Entertainment, News, Howto
+  // Select specific categories to feature on homepage (avoid showing all in pills)
+  const featuredCategories = POPULAR_CATEGORIES_DISPLAY.slice(0, 4); // Music, Gaming, Sports, Entertainment
 
   useEffect(() => {
     fetchAllData();
@@ -49,46 +49,51 @@ export default function Home() {
         setLastUpdated(globalData[0].captured_at);
       }
 
-      // Fetch category data for featured categories
+      // Fetch category data for featured categories (regular videos only)
       const categoryPromises = featuredCategories.map(async (category) => {
         try {
-          const response = await fetch(`/api/leaderboard/category/${category.slug}`);
+          const response = await fetch(`/api/leaderboard/category/${category.slug}?limit=10`);
           if (response.ok) {
             const data = await response.json();
-            // Separate shorts and regular videos
-            const regularVideos = data.filter(video => !video.is_short).slice(0, 5);
-            const shortsVideos = data.filter(video => video.is_short).slice(0, 5);
-            
-            // Map category slugs to chart navigation slugs
-            const chartSlug = category.slug.replace('-', '-');
-            
             return { 
-              [category.slug]: regularVideos,
-              [`${category.slug}_shorts`]: shortsVideos,
-              // Also store with chart navigation compatible names
-              [chartSlug]: regularVideos,
-              [`${chartSlug}_shorts`]: shortsVideos
+              [category.slug]: data // These are already only regular videos (not shorts)
             };
           }
           return { 
-            [category.slug]: [],
-            [`${category.slug}_shorts`]: [],
-            [category.slug.replace('-', '-')]: [],
-            [`${category.slug.replace('-', '-')}_shorts`]: []
+            [category.slug]: []
           };
         } catch (err) {
           console.error(`Error fetching ${category.name}:`, err);
           return { 
-            [category.slug]: [],
-            [`${category.slug}_shorts`]: [],
-            [category.slug.replace('-', '-')]: [],
-            [`${category.slug.replace('-', '-')}_shorts`]: []
+            [category.slug]: []
+          };
+        }
+      });
+
+      // Fetch category shorts separately
+      const categoryShortPromises = featuredCategories.map(async (category) => {
+        try {
+          const response = await fetch(`/api/leaderboard/category/${category.slug}/shorts?limit=5`);
+          if (response.ok) {
+            const data = await response.json();
+            return { 
+              [`${category.slug}_shorts`]: data
+            };
+          }
+          return { 
+            [`${category.slug}_shorts`]: []
+          };
+        } catch (err) {
+          console.error(`Error fetching ${category.name} shorts:`, err);
+          return { 
+            [`${category.slug}_shorts`]: []
           };
         }
       });
 
       const categoryResults = await Promise.all(categoryPromises);
-      const mergedCategoryData = categoryResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      const categoryShortResults = await Promise.all(categoryShortPromises);
+      const mergedCategoryData = [...categoryResults, ...categoryShortResults].reduce((acc, curr) => ({ ...acc, ...curr }), {});
       setCategoryData(mergedCategoryData);
       
     } catch (err) {
@@ -99,11 +104,32 @@ export default function Home() {
     }
   };
 
+  const handleCategoryClick = (categorySlug) => {
+    router.push(`/category/${categorySlug}`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
       {/* Modern Header */}
       <ModernChartHeader />
+
+      {/* Category Navigation Pills */}
+      <div className="bg-white/50 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium text-gray-600 mr-3">Categories:</span>
+            {POPULAR_CATEGORIES_DISPLAY.map((category) => (
+              <button
+                key={category.slug}
+                onClick={() => handleCategoryClick(category.slug)}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 ease-in-out transform hover:scale-105 shadow-sm"
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 

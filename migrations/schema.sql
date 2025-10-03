@@ -11,7 +11,10 @@ CREATE TABLE videos (
     published_at TEXT NOT NULL, -- ISO 8601 timestamp
     thumb_url TEXT NOT NULL,
     duration TEXT, -- ISO 8601 duration (PT4M13S)
-    is_short BOOLEAN DEFAULT FALSE, -- Derived from duration < 60s
+    is_short BOOLEAN DEFAULT FALSE, -- Derived from duration <= 180s AND portrait orientation
+    width INTEGER, -- Thumbnail width (proxy for video orientation)
+    height INTEGER, -- Thumbnail height (proxy for video orientation)
+    country_code TEXT DEFAULT 'US', -- ISO 3166-1 alpha-2 country code
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -51,6 +54,9 @@ CREATE TABLE creators (
 -- Indexes for performance
 CREATE INDEX idx_videos_category_id ON videos(category_id);
 CREATE INDEX idx_videos_is_short ON videos(is_short);
+CREATE INDEX idx_videos_country_code ON videos(country_code);
+CREATE INDEX idx_videos_country_category ON videos(country_code, category_id);
+CREATE INDEX idx_videos_country_short ON videos(country_code, is_short);
 CREATE INDEX idx_video_stats_video_id ON video_stats(video_id);
 CREATE INDEX idx_video_stats_captured_at ON video_stats(captured_at);
 CREATE INDEX idx_categories_slug ON categories(slug);

@@ -12,7 +12,6 @@ export default function CategoryPage() {
   const { slug } = params;
   
   const [categoryVideos, setCategoryVideos] = useState([]);
-  const [categoryShorts, setCategoryShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -47,13 +46,10 @@ export default function CategoryPage() {
           throw new Error('Invalid data format received from API');
         }
         
-        // Separate videos and shorts from the response
+        // Only get regular videos (no shorts)
         const regularVideos = videosData.filter(video => video && video.is_short === 0);
-        const shortsVideos = videosData.filter(video => video && video.is_short === 1);
-        
         
         setCategoryVideos(regularVideos || []);
-        setCategoryShorts(shortsVideos || []);
         
         // Set last updated to the most recent capture time
         if (videosData.length > 0) {
@@ -111,22 +107,7 @@ export default function CategoryPage() {
           />
         </div>
 
-        {/* Category Shorts Chart (if any) */}
-        {categoryShorts && categoryShorts.length > 0 && (
-          <div className="mb-12">
-            <ModernChartRanking
-              videos={categoryShorts || []}
-              title={`${categoryName} Shorts`}
-              loading={loading}
-              error={error}
-              lastUpdated={lastUpdated}
-              isShorts={true}
-              showStats={true}
-            />
-          </div>
-        )}
 
-        <Footer />
       </div>
     </div>
   );

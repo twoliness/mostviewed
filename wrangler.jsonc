@@ -5,7 +5,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "vidtrends",
-	"main": ".open-next/worker.js",
+	"main": "worker.js",
 	"compatibility_date": "2025-03-01",
 	"compatibility_flags": [
 		"nodejs_compat",
@@ -22,7 +22,7 @@
 		{
 			"binding": "DB",
 			"database_name": "videotrends",
-			"database_id": "1c5b3dc8-6584-44fa-9a44-a79994bbbe0a"
+			"database_id": "fe93432f-6822-42cd-b429-6189ec81fdcd"
 		}
 	],
 	"kv_namespaces": [
@@ -31,10 +31,15 @@
 			"id": "0825c693f52946489956ca77e04ea107"
 		}
 	],
+	"triggers": {
+		"crons": [
+			"*/30 * * * *",  // Global video collection every 30 minutes
+			"0 */12 * * *",  // Creator collection every 12 hours
+			"0 * * * *",     // Trending/country collection every hour
+			"*/40 * * * *"   // Category collection every 40 minutes
+		]
+	},
 	// vars are loaded from .dev.vars for development
-	// Note: Cron triggers should be configured via Cloudflare Dashboard
-	// to hit the /api/scheduled endpoint, as OpenNext.js doesn't support
-	// scheduled() function exports directly
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

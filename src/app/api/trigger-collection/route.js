@@ -13,25 +13,25 @@ export async function POST(request) {
     const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
     const db = new DatabaseService(env.DB);
 
-    // Collect global trending videos
+    // Collect global trending videos (target: 50 regular videos)
     console.log('[API] Fetching global trending videos...');
     const globalVideos = await youtube.getMostPopularVideos(50);
-    
+
     // Transform and prepare for batch insert
     const globalData = globalVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-    
+
     // Batch insert global videos
     await db.batchUpsertVideosWithStats(globalData);
     console.log(`[API] Inserted ${globalData.length} global trending videos`);
 
-    // Collect trending videos for each popular category
+    // Collect trending videos for each popular category (target: 50 videos + 50 shorts per category)
     let totalCategoryVideos = 0;
     let totalCategoryShorts = 0;
     for (const categoryId of POPULAR_CATEGORIES) {
       try {
         console.log(`[API] Fetching trending videos for category ${categoryId}...`);
-        const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 75);
-        
+        const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 50);
+
         if (categoryVideos.length > 0) {
           const categoryData = categoryVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
           if (categoryData.length > 0) {
@@ -44,10 +44,10 @@ export async function POST(request) {
         // Add a small delay to respect API rate limits
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Collect shorts for this category
+        // Collect shorts for this category (target: 50 shorts, fetch ~100 to filter)
         console.log(`[API] Fetching trending shorts for category ${categoryId}...`);
-        const categoryShorts = await youtube.getMostPopularShortsByCategory(categoryId, 30);
-        
+        const categoryShorts = await youtube.getMostPopularShortsByCategory(categoryId, 50);
+
         if (categoryShorts.length > 0) {
           const shortsData = categoryShorts.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
           if (shortsData.length > 0) {
@@ -59,19 +59,19 @@ export async function POST(request) {
 
         // Add a small delay to respect API rate limits
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
       } catch (error) {
         console.error(`[API] Error fetching category ${categoryId}:`, error);
         // Continue with other categories
       }
     }
 
-    // Collect trending Shorts
+    // Collect global trending Shorts (target: 50 shorts, fetch ~150 to filter)
     console.log('[API] Fetching trending Shorts...');
     let shortsCount = 0;
     try {
-      const shortsVideos = await youtube.getMostPopularShorts(75);
-      
+      const shortsVideos = await youtube.getMostPopularShorts(50);
+
       if (shortsVideos.length > 0) {
         const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
         if (shortsData.length > 0) {

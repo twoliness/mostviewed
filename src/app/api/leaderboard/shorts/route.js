@@ -21,7 +21,7 @@ export async function GET(request) {
 
     console.log('[API] Fetching shorts leaderboard from database');
     const db = new DatabaseService(env.DB);
-    const data = await db.getShortsLeaderboard(10);
+    const data = await db.getGlobalShortsLeaderboard(10);
     
     const response = JSON.stringify(data);
     

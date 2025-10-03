@@ -13,15 +13,18 @@ export class DatabaseService {
    */
   async upsertVideo(video) {
     console.log(`[Database] Upserting video: ${video.id} - ${video.title.substring(0, 50)}...`);
-    
+
     const stmt = this.db.prepare(`
-      INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         description = excluded.description,
         channel_title = excluded.channel_title,
         thumb_url = excluded.thumb_url,
+        width = excluded.width,
+        height = excluded.height,
+        country_code = excluded.country_code,
         updated_at = CURRENT_TIMESTAMP
     `);
 
@@ -36,9 +39,12 @@ export class DatabaseService {
         video.published_at,
         video.thumb_url,
         video.duration,
-        video.is_short ? 1 : 0
+        video.is_short ? 1 : 0,
+        video.width,
+        video.height,
+        video.country_code || 'US'
       ).run();
-      
+
       console.log(`[Database] Successfully upserted video: ${video.id}`);
     } catch (error) {
       console.error(`[Database] Error upserting video ${video.id}:`, error);
@@ -94,7 +100,6 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
-        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 0
@@ -127,10 +132,41 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
-        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.category_id = ? AND v.is_short = 0
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(categoryId, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get category-specific leaderboard (includes both videos and shorts)
+   */
+  async getCategoryLeaderboardCombined(categoryId, limit= 50) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.category_id = ?
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -160,7 +196,6 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
-        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.category_id = ? AND v.is_short = 1
@@ -169,6 +204,38 @@ export class DatabaseService {
     `);
 
     const result = await stmt.bind(categoryId, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get top shorts from all categories combined
+   */
+  async getGlobalShortsLeaderboard(limit= 10) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.is_short = 1
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
     return result.results;
   }
 
@@ -193,7 +260,6 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
-        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 1
@@ -321,6 +387,12 @@ export class DatabaseService {
   async batchUpsertCreators(creators) {
     console.log(`[Database] Starting batch upsert of ${creators.length} creators`);
 
+    // Skip if no data to insert
+    if (creators.length === 0) {
+      console.log(`[Database] No creators to upsert, skipping batch operation`);
+      return;
+    }
+
     try {
       // Use a transaction for better performance and consistency
       const transaction = this.db.batch(
@@ -368,20 +440,30 @@ export class DatabaseService {
    */
   async batchUpsertVideosWithStats(data) {
     console.log(`[Database] Starting batch upsert of ${data.length} videos with stats`);
+
+    // Skip if no data to insert
+    if (data.length === 0) {
+      console.log(`[Database] No videos to upsert, skipping batch operation`);
+      return;
+    }
+
     const capturedAt = new Date().toISOString();
 
     try {
       // Use a transaction for better performance and consistency
       const transaction = this.db.batch([
         // Upsert videos
-        ...data.map(({ video }) => 
+        ...data.map(({ video }) =>
           this.db.prepare(`
-            INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
               title = excluded.title,
               channel_title = excluded.channel_title,
               thumb_url = excluded.thumb_url,
+              width = excluded.width,
+              height = excluded.height,
+              country_code = excluded.country_code,
               updated_at = CURRENT_TIMESTAMP
           `).bind(
             video.id,
@@ -392,7 +474,10 @@ export class DatabaseService {
             video.published_at,
             video.thumb_url,
             video.duration,
-            video.is_short ? 1 : 0
+            video.is_short ? 1 : 0,
+            video.width,
+            video.height,
+            video.country_code || 'US'
           )
         ),
         // Insert stats
@@ -424,6 +509,103 @@ export class DatabaseService {
   }
 
   /**
+   * Get existing video IDs for a specific category
+   */
+  async getExistingVideosForCategory(categoryId, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT DISTINCT v.id 
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      WHERE v.category_id = ? AND vs.captured_at < datetime('now', '-30 minutes')
+      ORDER BY vs.view_count DESC, vs.captured_at DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(categoryId, limit).all();
+    return result.results.map(row => row.id);
+  }
+
+  /**
+   * Get existing video IDs for stats refresh
+   */
+  async getExistingVideoIds(limit = 500) {
+    const stmt = this.db.prepare(`
+      SELECT DISTINCT v.id 
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      ORDER BY vs.captured_at DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results.map(row => row.id);
+  }
+
+  /**
+   * Get top performing videos that need stats updates
+   */
+  async getTopVideosForRefresh(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT DISTINCT v.id, vs.view_count, vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE vs.captured_at < datetime('now', '-30 minutes')  -- Only refresh if last update was over 30 minutes ago
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results.map(row => row.id);
+  }
+
+  /**
+   * Batch insert refreshed video statistics
+   */
+  async batchInsertRefreshedStats(statsData) {
+    console.log(`[Database] Starting batch insert of ${statsData.length} refreshed stats`);
+
+    // Skip if no data to insert
+    if (statsData.length === 0) {
+      console.log(`[Database] No stats to insert, skipping batch operation`);
+      return;
+    }
+
+    try {
+      const capturedAt = new Date().toISOString();
+      
+      const transaction = this.db.batch(
+        statsData.map(stats => 
+          this.db.prepare(`
+            INSERT INTO video_stats (video_id, captured_at, view_count, like_count, comment_count)
+            VALUES (?, ?, ?, ?, ?)
+          `).bind(
+            stats.video_id,
+            capturedAt,
+            stats.view_count,
+            stats.like_count,
+            stats.comment_count
+          )
+        )
+      );
+
+      await transaction;
+      console.log(`[Database] Successfully batch inserted ${statsData.length} refreshed stats`);
+      
+      if (statsData.length > 0) {
+        console.log(`[Database] Sample stat: ${statsData[0].video_id} - ${statsData[0].view_count} views`);
+      }
+    } catch (error) {
+      console.error(`[Database] Error in batch insert of ${statsData.length} refreshed stats:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get videos for a specific creator/channel
    */
   async getCreatorVideos(channelId, limit = 10) {
@@ -445,7 +627,6 @@ export class DatabaseService {
       INNER JOIN (
         SELECT video_id, MAX(captured_at) as latest_captured_at
         FROM video_stats
-        WHERE captured_at > datetime('now', '-2 days')
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.channel_id = ?
@@ -476,5 +657,104 @@ export class DatabaseService {
     );
     
     return creatorsWithVideos;
+  }
+
+  /**
+   * Get trending videos for a specific country
+   */
+  async getCountryTrendingVideos(countryCode, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        v.country_code,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.country_code = ? AND v.is_short = 0
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(countryCode, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get trending shorts for a specific country
+   */
+  async getCountryTrendingShorts(countryCode, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        v.country_code,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.country_code = ? AND v.is_short = 1
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(countryCode, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get trending videos for a specific country and category
+   */
+  async getCountryCategoryVideos(countryCode, categoryId, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        vs.view_count,
+        v.category_id,
+        v.is_short,
+        v.country_code,
+        vs.captured_at
+      FROM videos v
+      INNER JOIN video_stats vs ON v.id = vs.video_id
+      INNER JOIN (
+        SELECT video_id, MAX(captured_at) as latest_captured_at
+        FROM video_stats
+        GROUP BY video_id
+      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      WHERE v.country_code = ? AND v.category_id = ? AND v.is_short = 0
+      ORDER BY vs.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(countryCode, categoryId, limit).all();
+    return result.results;
   }
 }
