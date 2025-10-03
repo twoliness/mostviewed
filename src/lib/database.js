@@ -455,10 +455,11 @@ export class DatabaseService {
         // Upsert videos
         ...data.map(({ video }) =>
           this.db.prepare(`
-            INSERT INTO videos (id, title, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
               title = excluded.title,
+              description = excluded.description,
               channel_title = excluded.channel_title,
               thumb_url = excluded.thumb_url,
               width = excluded.width,
@@ -468,6 +469,7 @@ export class DatabaseService {
           `).bind(
             video.id,
             video.title,
+            video.description,
             video.channel_id,
             video.channel_title,
             video.category_id,
