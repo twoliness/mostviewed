@@ -22,15 +22,15 @@ export default {
         apiEndpoint = '/api/scheduled';
         console.log('[Scheduled] Routing to main scheduled endpoint (creator collection)');
       }
+      // Check if this is category collection (every 4 hours at top of hour)
+      else if (currentMinute === 0 && (currentHour % 4 === 0)) {
+        apiEndpoint = '/api/scheduled/categories';
+        console.log('[Scheduled] Routing to category collection endpoint');
+      }
       // Check if this is trending/country collection (every hour at top of hour)
       else if (currentMinute === 0) {
         apiEndpoint = '/api/scheduled/countries';
         console.log('[Scheduled] Routing to trending/country collection endpoint');
-      }
-      // Check if this is category collection (every 40 minutes: :00, :40)
-      else if (currentMinute % 40 === 0) {
-        apiEndpoint = '/api/scheduled/categories';
-        console.log('[Scheduled] Routing to category collection endpoint');
       }
       // Default to main video collection (every 30 minutes: :00, :30)
       else if (currentMinute === 30) {

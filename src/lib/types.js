@@ -15,3 +15,12 @@ export const POPULAR_CATEGORIES_DISPLAY = [
   { id: 2, name: 'Autos & Vehicles', slug: 'autos-vehicles' },
   { id: 15, name: 'Pets & Animals', slug: 'pets-animals' },
 ];
+
+// Supported countries for trending videos
+export const SUPPORTED_COUNTRIES = [
+  { code: 'US', name: 'United States', slug: 'usa', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', slug: 'uk', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', slug: 'canada', flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia', slug: 'australia', flag: '🇦🇺' },
+  { code: 'IN', name: 'India', slug: 'india', flag: '🇮🇳' },
+];

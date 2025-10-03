@@ -36,7 +36,7 @@
 			"*/30 * * * *",  // Global video collection every 30 minutes
 			"0 */12 * * *",  // Creator collection every 12 hours
 			"0 * * * *",     // Trending/country collection every hour
-			"*/40 * * * *"   // Category collection every 40 minutes
+			"0 */4 * * *"    // Category collection every 4 hours
 		]
 	},
 	// vars are loaded from .dev.vars for development
