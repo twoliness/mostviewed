@@ -24,39 +24,38 @@ export class YouTubeApiService {
   }
 
   /**
-   * Fetch most popular videos globally with pagination
+   * Fetch most popular videos globally with pagination (2-step: IDs first, then fresh stats)
    */
   async getMostPopularVideos(targetResults = 100) {
     console.log(`[YouTube API] Fetching up to ${targetResults} most popular videos globally`);
-    
+
+    // STEP 1: Get video IDs from chart (chart API returns cached stats, so only get IDs)
+    console.log(`[YouTube API] Step 1: Fetching video IDs from chart to find regular videos`);
     let allVideos = [];
     let pageToken = null;
     let attempts = 0;
     const maxAttempts = Math.ceil(targetResults / 50); // 50 is max per API call
-    
+
     while (allVideos.length < targetResults && attempts < maxAttempts) {
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'contentDetails'); // Only get contentDetails to check duration
       url.searchParams.set('chart', 'mostPopular');
       url.searchParams.set('regionCode', 'US');
       url.searchParams.set('maxResults', '50'); // Max allowed per request
       url.searchParams.set('key', this.apiKey);
-      
+
       if (pageToken) {
         url.searchParams.set('pageToken', pageToken);
       }
 
-      console.log(`[YouTube API] Global request ${attempts + 1}: ${url.toString().replace(this.apiKey, '***API_KEY***')}`);
-
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         console.error(`[YouTube API] Error fetching global videos: ${response.status} ${response.statusText}`);
         break; // Don't throw error, just return what we have
       }
 
       const data = await response.json();
-      console.log(`[YouTube API] Global batch ${attempts + 1}: Got ${data.items.length} videos`);
 
       // Filter out shorts (videos ≤180 seconds) for regular video collections
       const regularVideos = data.items.filter(video => {
@@ -68,50 +67,82 @@ export class YouTubeApiService {
       allVideos.push(...regularVideos);
       pageToken = data.nextPageToken;
       attempts++;
-      
+
       // If no more pages or no more videos, break
       if (!pageToken || data.items.length === 0) {
         break;
       }
-      
+
       // Add small delay between requests to respect rate limits
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    // Limit to target results
-    const finalVideos = allVideos.slice(0, targetResults);
-    console.log(`[YouTube API] Successfully fetched ${finalVideos.length} total global videos (requested ${targetResults})`);
-    return finalVideos;
+
+    // Get IDs for target results
+    const videoIds = allVideos.slice(0, targetResults).map(v => v.id);
+    console.log(`[YouTube API] Step 1: Found ${videoIds.length} regular video IDs`);
+
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch FRESH statistics for these video IDs
+    console.log(`[YouTube API] Step 2: Fetching fresh statistics for ${videoIds.length} videos`);
+    const videosWithFreshStats = [];
+
+    // YouTube API allows up to 50 IDs per request
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('id', batch.join(','));
+      url.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh stats: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      videosWithFreshStats.push(...data.items);
+
+      if (i + 50 < videoIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Step 2: Retrieved fresh stats for ${videosWithFreshStats.length} videos`);
+    return videosWithFreshStats;
   }
 
   /**
-   * Fetch most popular videos for a specific category with pagination to get more results
+   * Fetch most popular videos for a specific category with pagination (2-step: IDs first, then fresh stats)
    */
   async getMostPopularVideosByCategory(categoryId, targetResults = 100) {
     console.log(`[YouTube API] Fetching up to ${targetResults} most popular videos for category ${categoryId}`);
-    
+
+    // STEP 1: Get video IDs from category chart (chart API returns cached stats, so only get IDs)
+    console.log(`[YouTube API] Step 1: Fetching video IDs from category ${categoryId} chart to find regular videos`);
     let allVideos = [];
     let pageToken = null;
     let attempts = 0;
     const maxAttempts = Math.ceil(targetResults / 50); // 50 is max per API call
-    
+
     while (allVideos.length < targetResults && attempts < maxAttempts) {
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'contentDetails'); // Only get contentDetails to check duration
       url.searchParams.set('chart', 'mostPopular');
       url.searchParams.set('regionCode', 'US');
       url.searchParams.set('videoCategoryId', categoryId.toString());
       url.searchParams.set('maxResults', '50'); // Max allowed per request
       url.searchParams.set('key', this.apiKey);
-      
+
       if (pageToken) {
         url.searchParams.set('pageToken', pageToken);
       }
 
-      console.log(`[YouTube API] Request ${attempts + 1} for category ${categoryId}: ${url.toString().replace(this.apiKey, '***API_KEY***')}`);
-
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         console.error(`[YouTube API] Error fetching category ${categoryId} videos: ${response.status} ${response.statusText}`);
         if (response.status === 403) {
@@ -121,8 +152,7 @@ export class YouTubeApiService {
       }
 
       const data = await response.json();
-      console.log(`[YouTube API] Batch ${attempts + 1}: Got ${data.items.length} videos for category ${categoryId}`);
-      
+
       // Filter out shorts (videos ≤180 seconds) for regular video collections
       const regularVideos = data.items.filter(video => {
         const durationSeconds = this.parseDuration(video.contentDetails.duration);
@@ -133,20 +163,52 @@ export class YouTubeApiService {
       allVideos.push(...regularVideos);
       pageToken = data.nextPageToken;
       attempts++;
-      
+
       // If no more pages or no more videos, break
       if (!pageToken || data.items.length === 0) {
         break;
       }
-      
+
       // Add small delay between requests to respect rate limits
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    // Limit to target results
-    const finalVideos = allVideos.slice(0, targetResults);
-    console.log(`[YouTube API] Successfully fetched ${finalVideos.length} total videos for category ${categoryId} (requested ${targetResults})`);
-    return finalVideos;
+
+    // Get IDs for target results
+    const videoIds = allVideos.slice(0, targetResults).map(v => v.id);
+    console.log(`[YouTube API] Step 1: Found ${videoIds.length} regular video IDs in category ${categoryId}`);
+
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch FRESH statistics for these video IDs
+    console.log(`[YouTube API] Step 2: Fetching fresh statistics for ${videoIds.length} videos in category ${categoryId}`);
+    const videosWithFreshStats = [];
+
+    // YouTube API allows up to 50 IDs per request
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('id', batch.join(','));
+      url.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh stats for category ${categoryId}: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      videosWithFreshStats.push(...data.items);
+
+      if (i + 50 < videoIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Step 2: Retrieved fresh stats for ${videosWithFreshStats.length} videos in category ${categoryId}`);
+    return videosWithFreshStats;
   }
 
   /**
