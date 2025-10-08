@@ -33,10 +33,10 @@
 	],
 	"triggers": {
 		"crons": [
-			"*/30 * * * *",  // Global video collection every 30 minutes
-			"0 */12 * * *",  // Creator collection every 12 hours
-			"0 * * * *",     // Trending/country collection every hour
-			"0 */4 * * *"    // Category collection every 4 hours
+			"0,30 * * * *",    // Regular videos collection (global + categories) at :00 and :30
+			"15,45 * * * *",   // Shorts collection (global + categories) at :15 and :45
+			"5 * * * *",       // Trending/country collection at :05 every hour
+			"10 */12 * * *"    // Creator collection at :10 every 12 hours
 		]
 	},
 	// vars are loaded from .dev.vars for development

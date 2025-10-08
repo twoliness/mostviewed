@@ -3,102 +3,36 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 // Import our collection handlers
 async function triggerVideoCollection(env) {
-  console.log('[Scheduled] Triggering enhanced video collection...');
-  
-  const { YouTubeApiService, POPULAR_CATEGORIES } = await import('@/lib/youtube-api');
+  console.log('[Scheduled] Triggering global video collection...');
+
+  const { YouTubeApiService } = await import('@/lib/youtube-api');
   const { DatabaseService } = await import('@/lib/database');
-  
+
   const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
   const db = new DatabaseService(env.DB);
 
-  // STEP 1: Refresh stats for existing high-performing videos to get latest view counts
-  console.log('[Scheduled] Refreshing stats for existing high-performing videos...');
-  const videosToRefresh = await db.getTopVideosForRefresh(500); // Get top 500 videos that need refresh
-  let refreshedCount = 0;
-  
-  if (videosToRefresh.length > 0) {
-    console.log(`[Scheduled] Found ${videosToRefresh.length} videos to refresh`);
-    const refreshedStats = await youtube.refreshVideoStats(videosToRefresh);
-    
-    if (refreshedStats.length > 0) {
-      const statsData = refreshedStats.map(video => youtube.transformRefreshedStats(video)).filter(Boolean);
-      if (statsData.length > 0) {
-        await db.batchInsertRefreshedStats(statsData);
-        refreshedCount = statsData.length;
-        console.log(`[Scheduled] Refreshed stats for ${statsData.length} existing videos`);
-      }
-    }
-  }
+  // Collect trending videos (fetch top 100 from YouTube's most popular chart)
+  console.log('[Scheduled] Collecting global trending videos...');
+  const globalVideos = await youtube.getMostPopularVideos(100);
 
-  // STEP 2: Discover new high-performing videos using search API - DISABLED TO SAVE QUOTA
-  // Search API costs 100 units per call, which quickly exhausts the daily quota
-  console.log('[Scheduled] Skipping search API to conserve quota (disabled)');
-  let newHighPerformingVideos = 0;
-
-  // STEP 3: Collect trending videos for discovery (reduced to 50 to save quota)
-  console.log('[Scheduled] Collecting trending videos for discovery...');
-  const globalVideos = await youtube.getMostPopularVideos(50);
-  
   // Transform and prepare for batch insert
   const globalData = globalVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-  
+
   // Batch insert global videos
   await db.batchUpsertVideosWithStats(globalData);
-  console.log(`[Scheduled] Inserted ${globalData.length} trending discovery videos`);
+  console.log(`[Scheduled] Inserted ${globalData.length} global trending videos`);
 
-  // STEP 4: Collect category-specific content (reduced scope)
-  let totalCategoryVideos = 0;
-  let totalCategoryShorts = 0;
-  for (const categoryId of POPULAR_CATEGORIES) {
-    try {
-      console.log(`[Scheduled] Fetching trending videos for category ${categoryId}...`);
-      const categoryVideos = await youtube.getMostPopularVideosByCategory(categoryId, 50);
-      
-      if (categoryVideos.length > 0) {
-        const categoryData = categoryVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-        if (categoryData.length > 0) {
-          await db.batchUpsertVideosWithStats(categoryData);
-          console.log(`[Scheduled] Inserted ${categoryData.length} videos for category ${categoryId}`);
-          totalCategoryVideos += categoryData.length;
-        }
-      }
-
-      // Add a small delay to respect API rate limits
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Collect shorts for this category (reduced to 50 to save quota)
-      console.log(`[Scheduled] Fetching trending shorts for category ${categoryId}...`);
-      const categoryShorts = await youtube.getMostPopularShortsByCategory(categoryId, 50);
-      
-      if (categoryShorts.length > 0) {
-        const shortsData = categoryShorts.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-        if (shortsData.length > 0) {
-          await db.batchUpsertVideosWithStats(shortsData);
-          console.log(`[Scheduled] Inserted ${shortsData.length} shorts for category ${categoryId}`);
-          totalCategoryShorts += shortsData.length;
-        }
-      }
-
-      // Add a small delay to respect API rate limits
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-    } catch (error) {
-      console.error(`[Scheduled] Error fetching category ${categoryId}:`, error);
-      // Continue with other categories
-    }
-  }
-
-  // Collect trending Shorts (reduced to 50 to save quota)
-  console.log('[Scheduled] Fetching trending Shorts...');
+  // Collect global trending Shorts (top 100)
+  console.log('[Scheduled] Collecting global trending Shorts...');
   let shortsCount = 0;
   try {
-    const shortsVideos = await youtube.getMostPopularShorts(50);
-    
+    const shortsVideos = await youtube.getMostPopularShorts(100);
+
     if (shortsVideos.length > 0) {
       const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
       if (shortsData.length > 0) {
         await db.batchUpsertVideosWithStats(shortsData);
-        console.log(`[Scheduled] Inserted ${shortsData.length} trending Shorts`);
+        console.log(`[Scheduled] Inserted ${shortsData.length} global trending Shorts`);
         shortsCount = shortsData.length;
       }
     }
@@ -110,15 +44,9 @@ async function triggerVideoCollection(env) {
   await clearAllCaches(env);
 
   return {
-    refreshedVideos: refreshedCount,
-    newHighPerformingVideos: newHighPerformingVideos,
-    discoveryVideos: globalData.length,
-    categoryVideos: totalCategoryVideos,
-    categoryShorts: totalCategoryShorts,
+    globalVideos: globalData.length,
     globalShorts: shortsCount,
-    totalNewData: newHighPerformingVideos + globalData.length + totalCategoryVideos + totalCategoryShorts + shortsCount,
-    totalRefreshed: refreshedCount,
-    categoriesProcessed: POPULAR_CATEGORIES.length
+    totalVideos: globalData.length + shortsCount
   };
 }
 

@@ -13,48 +13,17 @@ async function triggerCategoryCollection(env) {
 
   let totalStats = {
     categoriesProcessed: 0,
-    videosRefreshed: 0,
-    newHighPerformers: 0,
     trendingVideos: 0,
     trendingShorts: 0,
     errors: 0
   };
 
-  // Process each category comprehensively
+  // Process each category - fetch top 100 trending videos and shorts
   for (const categoryId of POPULAR_CATEGORIES) {
     try {
       console.log(`[Category Collection] Processing category ${categoryId}...`);
-      
-      // STEP 1: Refresh stats for existing videos in this category
-      const existingVideos = await db.getExistingVideosForCategory(categoryId, 100);
-      if (existingVideos.length > 0) {
-        console.log(`[Category Collection] Refreshing ${existingVideos.length} existing videos for category ${categoryId}`);
-        const refreshedStats = await youtube.refreshVideoStats(existingVideos);
-        
-        if (refreshedStats.length > 0) {
-          const statsData = refreshedStats.map(video => youtube.transformRefreshedStats(video)).filter(Boolean);
-          if (statsData.length > 0) {
-            await db.batchInsertRefreshedStats(statsData);
-            totalStats.videosRefreshed += statsData.length;
-            console.log(`[Category Collection] Refreshed ${statsData.length} videos for category ${categoryId}`);
-          }
-        }
-      }
 
-      // STEP 2: Search for new high-performing videos in this category
-      console.log(`[Category Collection] Searching for high-performing videos in category ${categoryId}...`);
-      const highPerformingVideos = await youtube.searchHighPerformingVideos(categoryId, 50);
-      
-      if (highPerformingVideos.length > 0) {
-        const newVideoData = highPerformingVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-        if (newVideoData.length > 0) {
-          await db.batchUpsertVideosWithStats(newVideoData);
-          totalStats.newHighPerformers += newVideoData.length;
-          console.log(`[Category Collection] Added ${newVideoData.length} high-performing videos for category ${categoryId}`);
-        }
-      }
-
-      // STEP 3: Get fresh trending content for this category
+      // Fetch trending videos for this category (top 100)
       console.log(`[Category Collection] Fetching trending videos for category ${categoryId}...`);
       const trendingVideos = await youtube.getMostPopularVideosByCategory(categoryId, 100);
       
@@ -67,7 +36,7 @@ async function triggerCategoryCollection(env) {
         }
       }
 
-      // STEP 4: Get trending shorts for this category
+      // Fetch trending shorts for this category (top 100)
       console.log(`[Category Collection] Fetching trending shorts for category ${categoryId}...`);
       const trendingShorts = await youtube.getMostPopularShortsByCategory(categoryId, 100);
       
@@ -81,9 +50,9 @@ async function triggerCategoryCollection(env) {
       }
 
       totalStats.categoriesProcessed++;
-      
+
       // Add delay to respect API rate limits
-      await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay between categories
+      await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (error) {
       console.error(`[Category Collection] Error processing category ${categoryId}:`, error);
@@ -95,7 +64,7 @@ async function triggerCategoryCollection(env) {
   // Clear caches after successful collection
   await clearCategoryCache(env);
 
-  console.log(`[Category Collection] Completed: ${totalStats.categoriesProcessed} categories, ${totalStats.videosRefreshed} refreshed, ${totalStats.newHighPerformers} new high-performers, ${totalStats.trendingVideos} trending videos, ${totalStats.trendingShorts} trending shorts`);
+  console.log(`[Category Collection] Completed: ${totalStats.categoriesProcessed} categories, ${totalStats.trendingVideos} trending videos, ${totalStats.trendingShorts} trending shorts`);
   
   return totalStats;
 }

@@ -84,7 +84,7 @@ export class DatabaseService {
    */
   async getGlobalLeaderboard(limit= 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -103,6 +103,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 0
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -116,7 +117,7 @@ export class DatabaseService {
    */
   async getCategoryLeaderboard(categoryId, limit= 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -135,6 +136,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.category_id = ? AND v.is_short = 0
+      AND vs.captured_at >= datetime('now', '-6 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -148,7 +150,7 @@ export class DatabaseService {
    */
   async getCategoryLeaderboardCombined(categoryId, limit= 50) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -167,6 +169,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.category_id = ?
+      AND vs.captured_at >= datetime('now', '-6 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -180,7 +183,7 @@ export class DatabaseService {
    */
   async getCategoryShortsLeaderboard(categoryId, limit= 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -199,6 +202,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.category_id = ? AND v.is_short = 1
+      AND vs.captured_at >= datetime('now', '-6 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -212,7 +216,7 @@ export class DatabaseService {
    */
   async getGlobalShortsLeaderboard(limit= 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -231,6 +235,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 1
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -244,7 +249,7 @@ export class DatabaseService {
    */
   async getShortsLeaderboard(limit= 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -263,6 +268,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.is_short = 1
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -612,7 +618,7 @@ export class DatabaseService {
    */
   async getCreatorVideos(channelId, limit = 10) {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         v.id,
         v.title,
         v.description,
@@ -632,6 +638,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.channel_id = ?
+      AND vs.captured_at >= datetime('now', '-6 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -686,6 +693,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.country_code = ? AND v.is_short = 0
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -719,6 +727,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.country_code = ? AND v.is_short = 1
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);
@@ -752,6 +761,7 @@ export class DatabaseService {
         GROUP BY video_id
       ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
       WHERE v.country_code = ? AND v.category_id = ? AND v.is_short = 0
+      AND vs.captured_at >= datetime('now', '-2 hours')
       ORDER BY vs.view_count DESC
       LIMIT ?
     `);

@@ -6,47 +6,20 @@ export async function GET(request) {
   try {
     const context = getCloudflareContext();
     const env = context.env;
-    
-    // Check cache first
-    const cacheKey = '/api/leaderboard/global';
-    const cached = await env.VIDTRENDS_CACHE.get(cacheKey);
-    if (cached) {
-      console.log('[API] Returning cached global leaderboard');
-      return new Response(cached, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=300',
-        },
-      });
-    }
-    
+
     console.log('[API] Fetching global leaderboard from database');
     const db = new DatabaseService(env.DB);
     const data = await db.getGlobalLeaderboard(10);
-    
+
     console.log(`[API] Found ${data.length} videos in global leaderboard`);
-    
+
     // If no data, return empty array with appropriate message
     if (data.length === 0) {
       console.log('[API] No data found in database - you may need to run initial data collection');
-      return NextResponse.json([], {
-        headers: {
-          'Cache-Control': 'public, max-age=60', // Shorter cache when no data
-        },
-      });
+      return NextResponse.json([]);
     }
-    
-    const response = JSON.stringify(data);
-    
-    // Cache the response for 5 minutes
-    await env.VIDTRENDS_CACHE.put(cacheKey, response, { expirationTtl: 300 });
-    console.log('[API] Cached global leaderboard response');
-    
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-      },
-    });
+
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[API] Error fetching global leaderboard:', error);
     return NextResponse.json(

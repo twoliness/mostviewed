@@ -9,33 +9,33 @@ export default {
   // Handle scheduled events (cron triggers)
   async scheduled(event, env, ctx) {
     console.log('[Scheduled] Cron trigger fired:', event.cron);
-    
+
     try {
       // Determine which endpoint to call based on cron pattern
       let apiEndpoint;
       const currentTime = new Date();
       const currentMinute = currentTime.getUTCMinutes();
       const currentHour = currentTime.getUTCHours();
-      
-      // Check if this is creator collection (every 12 hours at top of hour)
-      if (currentMinute === 0 && (currentHour % 12 === 0)) {
+
+      // Check if this is creator collection (every 12 hours at :10)
+      if (currentMinute === 10 && (currentHour % 12 === 0)) {
         apiEndpoint = '/api/scheduled';
-        console.log('[Scheduled] Routing to main scheduled endpoint (creator collection)');
+        console.log('[Scheduled] Routing to creator collection endpoint');
       }
-      // Check if this is category collection (every 4 hours at top of hour)
-      else if (currentMinute === 0 && (currentHour % 4 === 0)) {
-        apiEndpoint = '/api/scheduled/categories';
-        console.log('[Scheduled] Routing to category collection endpoint');
-      }
-      // Check if this is trending/country collection (every hour at top of hour)
-      else if (currentMinute === 0) {
+      // Check if this is trending/country collection (every hour at :05)
+      else if (currentMinute === 5) {
         apiEndpoint = '/api/scheduled/countries';
         console.log('[Scheduled] Routing to trending/country collection endpoint');
       }
-      // Default to main video collection (every 30 minutes: :00, :30)
-      else if (currentMinute === 30) {
-        apiEndpoint = '/api/scheduled';
-        console.log('[Scheduled] Routing to main scheduled endpoint (global video collection)');
+      // Check if this is videos collection (:00 or :30)
+      else if (currentMinute === 0 || currentMinute === 30) {
+        apiEndpoint = '/api/scheduled/videos';
+        console.log('[Scheduled] Routing to videos collection endpoint (global + categories)');
+      }
+      // Check if this is shorts collection (:15 or :45)
+      else if (currentMinute === 15 || currentMinute === 45) {
+        apiEndpoint = '/api/scheduled/shorts';
+        console.log('[Scheduled] Routing to shorts collection endpoint (global + categories)');
       }
       // Skip if we don't match any schedule
       else {

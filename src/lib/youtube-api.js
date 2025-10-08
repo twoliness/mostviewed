@@ -150,45 +150,183 @@ export class YouTubeApiService {
   }
 
   /**
-   * Get YouTube Shorts (videos ≤180 seconds AND portrait orientation) from most popular
+   * Get YouTube Shorts (videos ≤180 seconds) from most popular
+   * Fetches directly from chart WITHOUT using getMostPopularVideos() to avoid filtering
    */
   async getMostPopularShorts(maxResults = 100) {
     console.log(`[YouTube API] Fetching YouTube Shorts, target: ${maxResults} shorts`);
 
-    // Fetch more videos to filter for shorts - use pagination to get more content
+    // STEP 1: Get video IDs from chart (chart API returns cached stats, so only get IDs)
     const fetchCount = Math.max(200, maxResults * 3);
-    console.log(`[YouTube API] Fetching ${fetchCount} videos to filter for shorts`);
-    const allVideos = await this.getMostPopularVideos(fetchCount);
+    console.log(`[YouTube API] Step 1: Fetching ${fetchCount} video IDs from chart to find shorts`);
 
-    // Filter for shorts (≤180 seconds / 3 minutes duration only)
-    const shorts = allVideos.filter(video => {
-      const durationSeconds = this.parseDuration(video.contentDetails.duration);
-      return durationSeconds <= 180 && durationSeconds > 0;
-    });
+    let allVideos = [];
+    let pageToken = null;
+    let attempts = 0;
+    const maxAttempts = Math.ceil(fetchCount / 50);
 
-    console.log(`[YouTube API] Found ${shorts.length} shorts from ${allVideos.length} videos, returning ${Math.min(shorts.length, maxResults)}`);
-    return shorts.slice(0, maxResults);
+    while (allVideos.length < fetchCount && attempts < maxAttempts) {
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'contentDetails'); // Only get contentDetails to check duration
+      url.searchParams.set('chart', 'mostPopular');
+      url.searchParams.set('regionCode', 'US');
+      url.searchParams.set('maxResults', '50');
+      url.searchParams.set('key', this.apiKey);
+
+      if (pageToken) {
+        url.searchParams.set('pageToken', pageToken);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error: ${response.status}`);
+        break;
+      }
+
+      const data = await response.json();
+      allVideos.push(...data.items);
+      pageToken = data.nextPageToken;
+      attempts++;
+
+      if (!pageToken || data.items.length === 0) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Filter for shorts IDs (≤180 seconds duration)
+    const shortIds = allVideos
+      .filter(video => {
+        const durationSeconds = this.parseDuration(video.contentDetails.duration);
+        return durationSeconds <= 180 && durationSeconds > 0;
+      })
+      .map(video => video.id)
+      .slice(0, maxResults);
+
+    console.log(`[YouTube API] Step 1: Found ${shortIds.length} shorts from ${allVideos.length} videos`);
+
+    if (shortIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch FRESH statistics for these short IDs
+    console.log(`[YouTube API] Step 2: Fetching fresh statistics for ${shortIds.length} shorts`);
+    const shortsWithFreshStats = [];
+
+    // YouTube API allows up to 50 IDs per request
+    for (let i = 0; i < shortIds.length; i += 50) {
+      const batch = shortIds.slice(i, i + 50);
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('id', batch.join(','));
+      url.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh stats: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      shortsWithFreshStats.push(...data.items);
+
+      if (i + 50 < shortIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Step 2: Retrieved fresh stats for ${shortsWithFreshStats.length} shorts`);
+    return shortsWithFreshStats;
   }
 
   /**
-   * Get YouTube Shorts for a specific category (≤180 seconds AND portrait orientation)
+   * Get YouTube Shorts for a specific category (≤180 seconds)
+   * Fetches directly from chart WITHOUT using getMostPopularVideosByCategory() to avoid filtering
    */
   async getMostPopularShortsByCategory(categoryId, maxResults = 100) {
     console.log(`[YouTube API] Fetching YouTube Shorts for category ${categoryId}, target: ${maxResults} shorts`);
 
-    // Fetch more videos to filter for shorts - use pagination to get more content
-    const fetchCount = Math.max(200, maxResults * 4); // Need many more videos since shorts are less common in some categories
-    console.log(`[YouTube API] Fetching ${fetchCount} videos from category ${categoryId} to filter for shorts`);
-    const allVideos = await this.getMostPopularVideosByCategory(categoryId, fetchCount);
+    // STEP 1: Get video IDs from category chart (chart API returns cached stats, so only get IDs)
+    const fetchCount = Math.max(200, maxResults * 4);
+    console.log(`[YouTube API] Step 1: Fetching ${fetchCount} video IDs from category ${categoryId} chart to find shorts`);
 
-    // Filter for shorts (≤180 seconds / 3 minutes duration only)
-    const shorts = allVideos.filter(video => {
-      const durationSeconds = this.parseDuration(video.contentDetails.duration);
-      return durationSeconds <= 180 && durationSeconds > 0;
-    });
+    let allVideos = [];
+    let pageToken = null;
+    let attempts = 0;
+    const maxAttempts = Math.ceil(fetchCount / 50);
 
-    console.log(`[YouTube API] Found ${shorts.length} shorts from ${allVideos.length} videos in category ${categoryId}, returning ${Math.min(shorts.length, maxResults)}`);
-    return shorts.slice(0, maxResults);
+    while (allVideos.length < fetchCount && attempts < maxAttempts) {
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'contentDetails'); // Only get contentDetails to check duration
+      url.searchParams.set('chart', 'mostPopular');
+      url.searchParams.set('regionCode', 'US');
+      url.searchParams.set('videoCategoryId', categoryId.toString());
+      url.searchParams.set('maxResults', '50');
+      url.searchParams.set('key', this.apiKey);
+
+      if (pageToken) {
+        url.searchParams.set('pageToken', pageToken);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching category ${categoryId}: ${response.status}`);
+        if (response.status === 403) {
+          console.warn(`[YouTube API] Category ${categoryId} is restricted (403) - skipping`);
+        }
+        break;
+      }
+
+      const data = await response.json();
+      allVideos.push(...data.items);
+      pageToken = data.nextPageToken;
+      attempts++;
+
+      if (!pageToken || data.items.length === 0) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Filter for shorts IDs (≤180 seconds duration)
+    const shortIds = allVideos
+      .filter(video => {
+        const durationSeconds = this.parseDuration(video.contentDetails.duration);
+        return durationSeconds <= 180 && durationSeconds > 0;
+      })
+      .map(video => video.id)
+      .slice(0, maxResults);
+
+    console.log(`[YouTube API] Step 1: Found ${shortIds.length} shorts from ${allVideos.length} videos in category ${categoryId}`);
+
+    if (shortIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch FRESH statistics for these short IDs
+    console.log(`[YouTube API] Step 2: Fetching fresh statistics for ${shortIds.length} shorts in category ${categoryId}`);
+    const shortsWithFreshStats = [];
+
+    // YouTube API allows up to 50 IDs per request
+    for (let i = 0; i < shortIds.length; i += 50) {
+      const batch = shortIds.slice(i, i + 50);
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('id', batch.join(','));
+      url.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh stats for category ${categoryId}: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      shortsWithFreshStats.push(...data.items);
+
+      if (i + 50 < shortIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Step 2: Retrieved fresh stats for ${shortsWithFreshStats.length} shorts in category ${categoryId}`);
+    return shortsWithFreshStats;
   }
 
   /**
