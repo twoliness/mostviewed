@@ -15,15 +15,20 @@ export async function POST(request) {
 
     console.log('[Creator Collection] Initialized services successfully');
 
-    // Get unique channel IDs from videos that need creator profile updates
+    // Prioritize high-view channels first so top creators are enriched early.
     const channelIdsQuery = await env.DB.prepare(`
-      SELECT DISTINCT v.channel_id, v.channel_title
+      SELECT
+        v.channel_id,
+        MAX(v.channel_title) AS channel_title,
+        SUM(m.view_count) AS total_views
       FROM videos v
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       LEFT JOIN creators c ON v.channel_id = c.channel_id
       WHERE v.channel_id IS NOT NULL 
         AND v.channel_title IS NOT NULL
         AND (c.channel_id IS NULL OR c.updated_at < datetime('now', '-12 hours'))
-      ORDER BY v.channel_id
+      GROUP BY v.channel_id
+      ORDER BY total_views DESC
     `).all();
 
     const channelsToUpdate = channelIdsQuery.results;
@@ -95,7 +100,8 @@ export async function POST(request) {
     try {
       const cacheKeys = [
         '/api/creators/top',
-        '/api/creators/top?include_videos=true',
+        '/api/creators/top?include_videos=false&limit=10&videos_per_creator=5',
+        '/api/creators/top?include_videos=true&limit=50&videos_per_creator=3',
         '/api/debug/creators-count'
       ];
       

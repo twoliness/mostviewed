@@ -13,6 +13,7 @@ export class YouTubeApiService {
    * PT4M13S -> 253 seconds
    */
   parseDuration(duration) {
+    if (!duration) return 0;
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if (!match) return 0;
     
@@ -21,6 +22,16 @@ export class YouTubeApiService {
     const seconds = parseInt(match[3] || '0');
     
     return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  /**
+   * Shorts are identified by duration only: <= 180s and > 0s
+   */
+  isShortByDuration(video) {
+    const duration = video?.contentDetails?.duration;
+    if (!duration) return false;
+    const durationSeconds = this.parseDuration(duration);
+    return durationSeconds > 0 && durationSeconds <= 180;
   }
 
   /**
@@ -594,6 +605,7 @@ export class YouTubeApiService {
   async getMostPopularVideosByRegion(regionCode, targetResults = 50) {
     console.log(`[YouTube API] Fetching up to ${targetResults} most popular videos for ${regionCode}`);
 
+    // STEP 1: Fetch IDs from chart and keep only regular videos
     let allVideos = [];
     let pageToken = null;
     let attempts = 0;
@@ -601,7 +613,7 @@ export class YouTubeApiService {
 
     while (allVideos.length < targetResults && attempts < maxAttempts) {
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'contentDetails');
       url.searchParams.set('chart', 'mostPopular');
       url.searchParams.set('regionCode', regionCode);
       url.searchParams.set('maxResults', '50');
@@ -619,29 +631,52 @@ export class YouTubeApiService {
       }
 
       const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      const regularVideos = data.items.filter(video => {
-        const durationSeconds = this.parseDuration(video.contentDetails.duration);
-        const thumbnail = video.snippet.thumbnails.medium || video.snippet.thumbnails.default;
-        const isPortrait = thumbnail && thumbnail.height >= thumbnail.width;
-        const isShort = durationSeconds <= 180 && isPortrait;
-        return !isShort;
-      });
+      const regularVideos = items.filter((video) => !this.isShortByDuration(video));
 
       allVideos.push(...regularVideos);
       pageToken = data.nextPageToken;
       attempts++;
 
-      if (!pageToken || data.items.length === 0) {
+      if (!pageToken || items.length === 0) {
         break;
       }
 
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    const finalVideos = allVideos.slice(0, targetResults);
-    console.log(`[YouTube API] Successfully fetched ${finalVideos.length} videos for ${regionCode}`);
-    return finalVideos;
+    const videoIds = allVideos.slice(0, targetResults).map((video) => video.id);
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch fresh stats/details for selected IDs
+    const detailedVideos = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const detailsUrl = new URL(`${this.baseUrl}/videos`);
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('id', batch.join(','));
+      detailsUrl.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(detailsUrl.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh ${regionCode} stats: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      detailedVideos.push(...items);
+
+      if (i + 50 < videoIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Successfully fetched ${detailedVideos.length} videos for ${regionCode}`);
+    return detailedVideos;
   }
 
   /**
@@ -650,18 +685,78 @@ export class YouTubeApiService {
   async getMostPopularShortsByRegion(regionCode, targetResults = 50) {
     console.log(`[YouTube API] Fetching ${targetResults} shorts for ${regionCode}`);
 
-    const fetchCount = Math.max(150, targetResults * 3);
-    const allVideos = await this.getMostPopularVideosByRegion(regionCode, fetchCount);
+    // Fetch from chart directly so shorts are not excluded upstream
+    const fetchCount = Math.max(200, targetResults * 3);
+    const maxAttempts = Math.ceil(fetchCount / 50);
+    let allVideos = [];
+    let pageToken = null;
+    let attempts = 0;
 
-    const shorts = allVideos.filter(video => {
-      const durationSeconds = this.parseDuration(video.contentDetails.duration);
-      const thumbnail = video.snippet.thumbnails.medium || video.snippet.thumbnails.default;
-      const isPortrait = thumbnail && thumbnail.height >= thumbnail.width;
-      return durationSeconds <= 180 && durationSeconds > 0 && isPortrait;
-    });
+    while (allVideos.length < fetchCount && attempts < maxAttempts) {
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'contentDetails');
+      url.searchParams.set('chart', 'mostPopular');
+      url.searchParams.set('regionCode', regionCode);
+      url.searchParams.set('maxResults', '50');
+      url.searchParams.set('key', this.apiKey);
 
-    console.log(`[YouTube API] Found ${shorts.length} shorts from ${allVideos.length} videos for ${regionCode}`);
-    return shorts.slice(0, targetResults);
+      if (pageToken) {
+        url.searchParams.set('pageToken', pageToken);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching shorts for ${regionCode}: ${response.status}`);
+        break;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      allVideos.push(...items);
+      pageToken = data.nextPageToken;
+      attempts++;
+
+      if (!pageToken || items.length === 0) {
+        break;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const shortIds = allVideos
+      .filter((video) => this.isShortByDuration(video))
+      .map((video) => video.id)
+      .slice(0, targetResults);
+
+    if (shortIds.length === 0) {
+      return [];
+    }
+
+    const shorts = [];
+    for (let i = 0; i < shortIds.length; i += 50) {
+      const batch = shortIds.slice(i, i + 50);
+      const detailsUrl = new URL(`${this.baseUrl}/videos`);
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('id', batch.join(','));
+      detailsUrl.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(detailsUrl.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh shorts stats for ${regionCode}: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      shorts.push(...items);
+
+      if (i + 50 < shortIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Found ${shorts.length} shorts for ${regionCode}`);
+    return shorts;
   }
 
   /**
@@ -670,6 +765,7 @@ export class YouTubeApiService {
   async getMostPopularVideosByCategoryAndRegion(regionCode, categoryId, targetResults = 50) {
     console.log(`[YouTube API] Fetching ${targetResults} videos for category ${categoryId} in ${regionCode}`);
 
+    // STEP 1: Fetch IDs from chart and keep only regular videos
     let allVideos = [];
     let pageToken = null;
     let attempts = 0;
@@ -677,7 +773,7 @@ export class YouTubeApiService {
 
     while (allVideos.length < targetResults && attempts < maxAttempts) {
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'contentDetails');
       url.searchParams.set('chart', 'mostPopular');
       url.searchParams.set('regionCode', regionCode);
       url.searchParams.set('videoCategoryId', categoryId.toString());
@@ -696,29 +792,52 @@ export class YouTubeApiService {
       }
 
       const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      const regularVideos = data.items.filter(video => {
-        const durationSeconds = this.parseDuration(video.contentDetails.duration);
-        const thumbnail = video.snippet.thumbnails.medium || video.snippet.thumbnails.default;
-        const isPortrait = thumbnail && thumbnail.height >= thumbnail.width;
-        const isShort = durationSeconds <= 180 && isPortrait;
-        return !isShort;
-      });
+      const regularVideos = items.filter((video) => !this.isShortByDuration(video));
 
       allVideos.push(...regularVideos);
       pageToken = data.nextPageToken;
       attempts++;
 
-      if (!pageToken || data.items.length === 0) {
+      if (!pageToken || items.length === 0) {
         break;
       }
 
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    const finalVideos = allVideos.slice(0, targetResults);
-    console.log(`[YouTube API] Fetched ${finalVideos.length} videos for category ${categoryId} in ${regionCode}`);
-    return finalVideos;
+    const videoIds = allVideos.slice(0, targetResults).map((video) => video.id);
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // STEP 2: Fetch fresh stats/details for selected IDs
+    const detailedVideos = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const detailsUrl = new URL(`${this.baseUrl}/videos`);
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('id', batch.join(','));
+      detailsUrl.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(detailsUrl.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh category ${categoryId} stats for ${regionCode}: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      detailedVideos.push(...items);
+
+      if (i + 50 < videoIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[YouTube API] Fetched ${detailedVideos.length} videos for category ${categoryId} in ${regionCode}`);
+    return detailedVideos;
   }
 
   /**
@@ -727,18 +846,79 @@ export class YouTubeApiService {
   async getMostPopularShortsByCategoryAndRegion(regionCode, categoryId, targetResults = 50) {
     console.log(`[YouTube API] Fetching ${targetResults} shorts for category ${categoryId} in ${regionCode}`);
 
-    const fetchCount = Math.max(100, targetResults * 2);
-    const allVideos = await this.getMostPopularVideosByCategoryAndRegion(regionCode, categoryId, fetchCount);
+    // Fetch from chart directly so shorts are not excluded upstream
+    const fetchCount = Math.max(200, targetResults * 4);
+    const maxAttempts = Math.ceil(fetchCount / 50);
+    let allVideos = [];
+    let pageToken = null;
+    let attempts = 0;
 
-    const shorts = allVideos.filter(video => {
-      const durationSeconds = this.parseDuration(video.contentDetails.duration);
-      const thumbnail = video.snippet.thumbnails.medium || video.snippet.thumbnails.default;
-      const isPortrait = thumbnail && thumbnail.height >= thumbnail.width;
-      return durationSeconds <= 180 && durationSeconds > 0 && isPortrait;
-    });
+    while (allVideos.length < fetchCount && attempts < maxAttempts) {
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'contentDetails');
+      url.searchParams.set('chart', 'mostPopular');
+      url.searchParams.set('regionCode', regionCode);
+      url.searchParams.set('videoCategoryId', categoryId.toString());
+      url.searchParams.set('maxResults', '50');
+      url.searchParams.set('key', this.apiKey);
+
+      if (pageToken) {
+        url.searchParams.set('pageToken', pageToken);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching category ${categoryId} shorts for ${regionCode}: ${response.status}`);
+        break;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      allVideos.push(...items);
+      pageToken = data.nextPageToken;
+      attempts++;
+
+      if (!pageToken || items.length === 0) {
+        break;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const shortIds = allVideos
+      .filter((video) => this.isShortByDuration(video))
+      .map((video) => video.id)
+      .slice(0, targetResults);
+
+    if (shortIds.length === 0) {
+      return [];
+    }
+
+    const shorts = [];
+    for (let i = 0; i < shortIds.length; i += 50) {
+      const batch = shortIds.slice(i, i + 50);
+      const detailsUrl = new URL(`${this.baseUrl}/videos`);
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('id', batch.join(','));
+      detailsUrl.searchParams.set('key', this.apiKey);
+
+      const response = await fetch(detailsUrl.toString());
+      if (!response.ok) {
+        console.error(`[YouTube API] Error fetching fresh category ${categoryId} shorts stats for ${regionCode}: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      shorts.push(...items);
+
+      if (i + 50 < shortIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
 
     console.log(`[YouTube API] Found ${shorts.length} shorts for category ${categoryId} in ${regionCode}`);
-    return shorts.slice(0, targetResults);
+    return shorts;
   }
 }
 

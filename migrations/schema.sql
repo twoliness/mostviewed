@@ -59,10 +59,75 @@ CREATE INDEX idx_videos_country_category ON videos(country_code, category_id);
 CREATE INDEX idx_videos_country_short ON videos(country_code, is_short);
 CREATE INDEX idx_video_stats_video_id ON video_stats(video_id);
 CREATE INDEX idx_video_stats_captured_at ON video_stats(captured_at);
+CREATE INDEX idx_video_stats_video_captured ON video_stats(video_id, captured_at DESC);
 CREATE INDEX idx_categories_slug ON categories(slug);
 CREATE INDEX idx_creators_channel_id ON creators(channel_id);
 CREATE INDEX idx_creators_subscriber_count ON creators(subscriber_count);
 CREATE INDEX idx_creators_view_count ON creators(view_count);
+
+-- Materialized latest stats table for low-CPU leaderboard reads
+CREATE TABLE IF NOT EXISTS mv_latest_video_stats (
+    video_id TEXT PRIMARY KEY,
+    captured_at TEXT NOT NULL,
+    view_count INTEGER NOT NULL,
+    like_count INTEGER,
+    comment_count INTEGER,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (video_id) REFERENCES videos (id)
+);
+
+CREATE INDEX idx_mv_latest_video_stats_captured_at ON mv_latest_video_stats(captured_at);
+CREATE INDEX idx_mv_latest_video_stats_view_count ON mv_latest_video_stats(view_count DESC);
+CREATE INDEX idx_mv_latest_video_stats_like_count ON mv_latest_video_stats(like_count DESC);
+
+CREATE TRIGGER IF NOT EXISTS trg_mv_latest_video_stats_upsert
+AFTER INSERT ON video_stats
+BEGIN
+    INSERT INTO mv_latest_video_stats (
+        video_id, captured_at, view_count, like_count, comment_count, updated_at
+    ) VALUES (
+        NEW.video_id, NEW.captured_at, NEW.view_count, NEW.like_count, NEW.comment_count, CURRENT_TIMESTAMP
+    )
+    ON CONFLICT(video_id) DO UPDATE SET
+        captured_at = excluded.captured_at,
+        view_count = excluded.view_count,
+        like_count = excluded.like_count,
+        comment_count = excluded.comment_count,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE excluded.captured_at >= mv_latest_video_stats.captured_at;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_mv_latest_video_stats_delete_video
+AFTER DELETE ON videos
+BEGIN
+    DELETE FROM mv_latest_video_stats WHERE video_id = OLD.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_mv_latest_video_stats_delete_stat
+AFTER DELETE ON video_stats
+BEGIN
+    INSERT INTO mv_latest_video_stats (
+        video_id, captured_at, view_count, like_count, comment_count, updated_at
+    )
+    SELECT
+        vs.video_id, vs.captured_at, vs.view_count, vs.like_count, vs.comment_count, CURRENT_TIMESTAMP
+    FROM video_stats vs
+    WHERE vs.video_id = OLD.video_id
+    ORDER BY vs.captured_at DESC, vs.id DESC
+    LIMIT 1
+    ON CONFLICT(video_id) DO UPDATE SET
+        captured_at = excluded.captured_at,
+        view_count = excluded.view_count,
+        like_count = excluded.like_count,
+        comment_count = excluded.comment_count,
+        updated_at = CURRENT_TIMESTAMP;
+
+    DELETE FROM mv_latest_video_stats
+    WHERE video_id = OLD.video_id
+      AND NOT EXISTS (
+          SELECT 1 FROM video_stats WHERE video_id = OLD.video_id
+      );
+END;
 
 -- Insert YouTube categories
 INSERT INTO categories (id, name, slug) VALUES

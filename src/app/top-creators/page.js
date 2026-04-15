@@ -1,12 +1,10 @@
-import ComingSoon from '@/components/ComingSoon';
+import TopCreatorsPage from '@/components/TopCreatorsPage';
 
 export const metadata = {
-  title: "Top YouTube Creators - Coming Soon | Most Viewed Today",
-  description: "Discover top YouTube creators and channels. Creator analytics, subscriber growth, and performance metrics coming soon.",
+  title: 'Top YouTube Creators | Most Viewed Today',
+  description: 'Discover top YouTube creators ranked by total views across their leading videos and channels.',
 };
 
-export default function TopCreatorsPage() {
-  return (
-    <ComingSoon title="Top YouTube Creators" />
-  );
+export default function Page() {
+  return <TopCreatorsPage />;
 }

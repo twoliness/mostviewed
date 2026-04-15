@@ -7,8 +7,8 @@ export async function GET(request) {
     const context = getCloudflareContext();
     const env = context.env;
     const url = new URL(request.url);
-    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '10', 10), 1), 100);
-    const cacheKey = `/api/leaderboard/shorts?limit=${limit}`;
+    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '100', 10), 1), 100);
+    const cacheKey = `/api/leaderboard/trending-now?limit=${limit}`;
     const cache = env.VIDTRENDS_CACHE;
 
     if (cache) {
@@ -23,11 +23,10 @@ export async function GET(request) {
       }
     }
 
-    console.log(`[API] Fetching shorts leaderboard from database (limit: ${limit})`);
     const db = new DatabaseService(env.DB);
-    const data = await db.getGlobalShortsLeaderboard(limit);
-
+    const data = await db.getTrendingNowLeaderboard(limit);
     const response = JSON.stringify(data);
+
     if (cache) {
       await cache.put(cacheKey, response, { expirationTtl: 300 });
     }
@@ -38,9 +37,9 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error('[API] Error fetching shorts leaderboard:', error);
+    console.error('[API] Error fetching trending-now leaderboard:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch shorts leaderboard data' },
+      { error: 'Failed to fetch trending-now leaderboard data' },
       { status: 500 }
     );
   }

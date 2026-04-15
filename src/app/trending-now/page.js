@@ -1,12 +1,18 @@
-import ComingSoon from '@/components/ComingSoon';
+import LeaderboardPage from '@/components/LeaderboardPage';
 
 export const metadata = {
-  title: "Trending Now - Coming Soon | Most Viewed Today",
-  description: "Real-time trending YouTube videos updated every minute. Live trend tracking coming soon to MostViewedToday.com",
+  title: 'Trending Now | Most Viewed Today',
+  description: 'See what is trending right now on YouTube with live-ranked, high-velocity video data.',
 };
 
 export default function TrendingNowPage() {
   return (
-    <ComingSoon title="Trending Now" />
+    <LeaderboardPage
+      heroTitle="Trending now"
+      heroSubtitle="Live-ranked YouTube videos with the strongest momentum"
+      endpoint="/api/leaderboard/trending-now?limit=100"
+      rankingTitle="Real-time trend ranking"
+      footerContext="global"
+    />
   );
 }

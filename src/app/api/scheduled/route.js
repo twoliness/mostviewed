@@ -59,14 +59,20 @@ async function triggerCreatorCollection(env) {
   const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
   const database = new DatabaseService(env.DB);
 
-  // Get unique channel IDs from videos that need creator profile updates
+  // Prioritize the highest-view channels first so top creators get profile data quickly.
   const channelIdsQuery = await env.DB.prepare(`
-    SELECT DISTINCT v.channel_id, v.channel_title
+    SELECT
+      v.channel_id,
+      MAX(v.channel_title) AS channel_title,
+      SUM(m.view_count) AS total_views
     FROM videos v
+    INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
     LEFT JOIN creators c ON v.channel_id = c.channel_id
-    WHERE c.channel_id IS NULL 
-       OR c.updated_at < datetime('now', '-12 hours')
-    ORDER BY v.channel_id
+    WHERE v.channel_id IS NOT NULL
+      AND v.channel_title IS NOT NULL
+      AND (c.channel_id IS NULL OR c.updated_at < datetime('now', '-12 hours'))
+    GROUP BY v.channel_id
+    ORDER BY total_views DESC
     LIMIT 50
   `).all();
 
@@ -114,8 +120,12 @@ async function clearAllCaches(env) {
   try {
     const cacheKeys = [
       '/api/leaderboard/global',
+      '/api/leaderboard/global?limit=10',
+      '/api/leaderboard/global?limit=100',
       '/api/leaderboard/shorts',
-      '/api/creators/top'
+      '/api/leaderboard/shorts?limit=10',
+      '/api/creators/top',
+      '/api/creators/top?include_videos=true&limit=50&videos_per_creator=3'
     ];
     
     // Add category cache keys

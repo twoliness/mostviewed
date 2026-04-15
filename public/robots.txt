@@ -80,5 +80,5 @@ Allow: /
 User-agent: *
 Disallow: /
 
-# Sitemap location (if you have one)
-# Sitemap: https://yourdomain.com/sitemap.xml
+# Sitemap location
+Sitemap: https://mostviewed.today/sitemap.xml

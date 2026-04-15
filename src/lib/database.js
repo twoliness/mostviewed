@@ -9,6 +9,19 @@ export class DatabaseService {
   }
 
   /**
+   * Normalize capture timestamps to 30-minute buckets so multi-batch collectors
+   * share one snapshot key (prevents partial snapshot reads).
+   */
+  getCaptureBucketTimestamp() {
+    const now = new Date();
+    const bucket = new Date(now);
+    const minutes = bucket.getUTCMinutes();
+    const bucketMinutes = Math.floor(minutes / 30) * 30;
+    bucket.setUTCMinutes(bucketMinutes, 0, 0);
+    return bucket.toISOString();
+  }
+
+  /**
    * Insert or update a video record
    */
   async upsertVideo(video) {
@@ -91,25 +104,169 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 0
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
     const result = await stmt.bind(limit).all();
     return result.results;
+  }
+
+  /**
+   * Get "trending now" leaderboard (same dataset as global, extended limit)
+   */
+  async getTrendingNowLeaderboard(limit = 100) {
+    return this.getGlobalLeaderboard(limit);
+  }
+
+  /**
+   * Get viral videos (recently published high-view videos)
+   */
+  async getViralVideos(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        m.view_count,
+        COALESCE(m.like_count, 0) as like_count,
+        COALESCE(m.comment_count, 0) as comment_count,
+        v.category_id,
+        v.is_short,
+        v.published_at,
+        m.captured_at
+      FROM videos v
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+      WHERE v.is_short = 0
+        AND datetime(v.published_at) >= datetime('now', '-7 days')
+      ORDER BY m.view_count DESC, datetime(v.published_at) DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get most liked videos by latest like count
+   */
+  async getMostLikedVideos(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        m.view_count,
+        COALESCE(m.like_count, 0) as like_count,
+        COALESCE(m.comment_count, 0) as comment_count,
+        CASE
+          WHEN m.view_count > 0
+          THEN ROUND((COALESCE(m.like_count, 0) * 100.0) / m.view_count, 2)
+          ELSE 0
+        END as engagement_rate,
+        v.category_id,
+        v.is_short,
+        m.captured_at
+      FROM videos v
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+      WHERE v.is_short = 0
+      ORDER BY like_count DESC, m.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get breaking videos (very recently published high-view videos)
+   */
+  async getBreakingVideos(limit = 100) {
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        m.view_count,
+        v.category_id,
+        v.is_short,
+        v.published_at,
+        m.captured_at
+      FROM videos v
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+      WHERE v.is_short = 0
+        AND datetime(v.published_at) >= datetime('now', '-72 hours')
+      ORDER BY datetime(v.published_at) DESC, m.view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(limit).all();
+    return result.results;
+  }
+
+  async getTopVideosByPeriod(days = 7, limit = 100) {
+    const windowStart = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
+
+    const stmt = this.db.prepare(`
+      WITH window_stats AS (
+        SELECT
+          video_id,
+          MAX(view_count) as peak_view_count,
+          MAX(captured_at) as latest_capture
+        FROM video_stats
+        WHERE datetime(captured_at) >= datetime(?)
+        GROUP BY video_id
+      )
+      SELECT
+        v.id,
+        v.title,
+        v.description,
+        v.channel_title,
+        v.thumb_url,
+        v.duration,
+        ws.peak_view_count as view_count,
+        v.category_id,
+        v.is_short,
+        ws.latest_capture as captured_at
+      FROM videos v
+      INNER JOIN window_stats ws ON v.id = ws.video_id
+      WHERE v.is_short = 0
+      ORDER BY ws.peak_view_count DESC
+      LIMIT ?
+    `);
+
+    const result = await stmt.bind(windowStart, limit).all();
+    return result.results;
+  }
+
+  /**
+   * Get weekly top videos by peak view counts captured in the last 7 days
+   */
+  async getWeeklyTopVideos(limit = 100) {
+    return this.getTopVideosByPeriod(7, limit);
+  }
+
+  /**
+   * Get monthly top videos by peak view counts captured in the last 30 days
+   */
+  async getMonthlyTopVideos(limit = 100) {
+    return this.getTopVideosByPeriod(30, limit);
   }
 
   /**
@@ -124,20 +281,14 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ? AND v.is_short = 0
-      AND vs.captured_at >= datetime('now', '-6 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -157,20 +308,14 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ?
-      AND vs.captured_at >= datetime('now', '-6 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -190,20 +335,14 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ? AND v.is_short = 1
-      AND vs.captured_at >= datetime('now', '-6 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -223,20 +362,14 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 1
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -256,20 +389,14 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 1
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -349,19 +476,14 @@ export class DatabaseService {
         v.channel_id,
         v.channel_title,
         COUNT(DISTINCT v.id) as video_count,
-        SUM(vs.view_count) as total_views,
-        AVG(vs.view_count) as avg_views,
-        MAX(vs.captured_at) as latest_capture,
+        SUM(m.view_count) as total_views,
+        AVG(m.view_count) as avg_views,
+        MAX(m.captured_at) as latest_capture,
         c.description,
         c.avatar_url,
         c.subscriber_count
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       LEFT JOIN creators c ON v.channel_id = c.channel_id
       WHERE v.channel_id IS NOT NULL AND v.channel_title IS NOT NULL
       GROUP BY v.channel_id, v.channel_title
@@ -453,7 +575,7 @@ export class DatabaseService {
       return;
     }
 
-    const capturedAt = new Date().toISOString();
+    const capturedAt = this.getCaptureBucketTimestamp();
 
     try {
       // Use a transaction for better performance and consistency
@@ -584,7 +706,7 @@ export class DatabaseService {
     }
 
     try {
-      const capturedAt = new Date().toISOString();
+      const capturedAt = this.getCaptureBucketTimestamp();
       
       const transaction = this.db.batch(
         statsData.map(stats => 
@@ -625,21 +747,15 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
-        vs.captured_at,
+        m.captured_at,
         v.published_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.channel_id = ?
-      AND vs.captured_at >= datetime('now', '-6 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -680,21 +796,15 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
         v.country_code,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.country_code = ? AND v.is_short = 0
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -714,21 +824,15 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
         v.country_code,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.country_code = ? AND v.is_short = 1
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 
@@ -748,21 +852,15 @@ export class DatabaseService {
         v.channel_title,
         v.thumb_url,
         v.duration,
-        vs.view_count,
+        m.view_count,
         v.category_id,
         v.is_short,
         v.country_code,
-        vs.captured_at
+        m.captured_at
       FROM videos v
-      INNER JOIN video_stats vs ON v.id = vs.video_id
-      INNER JOIN (
-        SELECT video_id, MAX(captured_at) as latest_captured_at
-        FROM video_stats
-        GROUP BY video_id
-      ) latest ON vs.video_id = latest.video_id AND vs.captured_at = latest.latest_captured_at
+      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.country_code = ? AND v.category_id = ? AND v.is_short = 0
-      AND vs.captured_at >= datetime('now', '-2 hours')
-      ORDER BY vs.view_count DESC
+      ORDER BY m.view_count DESC
       LIMIT ?
     `);
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseService } from '@/lib/database';
 
@@ -6,10 +6,26 @@ export async function GET(request) {
   try {
     const context = getCloudflareContext();
     const env = context.env;
+    const url = new URL(request.url);
+    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '10', 10), 1), 100);
+    const cacheKey = `/api/leaderboard/global?limit=${limit}`;
+    const cache = env.VIDTRENDS_CACHE;
 
-    console.log('[API] Fetching global leaderboard from database');
+    if (cache) {
+      const cached = await cache.get(cacheKey);
+      if (cached) {
+        return new Response(cached, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=300',
+          },
+        });
+      }
+    }
+
+    console.log(`[API] Fetching global leaderboard from database (limit: ${limit})`);
     const db = new DatabaseService(env.DB);
-    const data = await db.getGlobalLeaderboard(10);
+    const data = await db.getGlobalLeaderboard(limit);
 
     console.log(`[API] Found ${data.length} videos in global leaderboard`);
 
@@ -19,7 +35,16 @@ export async function GET(request) {
       return NextResponse.json([]);
     }
 
-    return NextResponse.json(data);
+    const response = JSON.stringify(data);
+    if (cache) {
+      await cache.put(cacheKey, response, { expirationTtl: 300 });
+    }
+
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error('[API] Error fetching global leaderboard:', error);
     return NextResponse.json(

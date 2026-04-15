@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import ModernChartHeader from '@/components/ModernChartHeader';
+import ChartHero from '@/components/ChartHero';
 import ModernChartRanking from '@/components/ModernChartRanking';
+import SeoFooter from '@/components/SeoFooter';
 import { SUPPORTED_COUNTRIES } from '@/lib/types';
 
 export default function CountryTrendingPage() {
@@ -19,17 +20,14 @@ export default function CountryTrendingPage() {
   useEffect(() => {
     if (!country) return;
 
-    // Find country info
-    const info = SUPPORTED_COUNTRIES.find(c => c.slug === country.toLowerCase());
-    setCountryInfo(info);
+    const info = SUPPORTED_COUNTRIES.find((entry) => entry.slug === country.toLowerCase());
+    setCountryInfo(info || null);
 
-    // Fetch country trending data
     const fetchTrendingData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Fetch trending videos (limit 100)
         const videosResponse = await fetch(`/api/trending/${country}?limit=100`);
         if (!videosResponse.ok) {
           if (videosResponse.status === 404) {
@@ -37,27 +35,18 @@ export default function CountryTrendingPage() {
           }
           throw new Error(`Failed to fetch videos: ${videosResponse.status}`);
         }
-        const videosData = await videosResponse.json();
 
-        // Ensure videosData is an array
+        const videosData = await videosResponse.json();
         if (!Array.isArray(videosData)) {
-          console.error('API returned non-array data:', videosData);
           throw new Error('Invalid data format received from API');
         }
 
-        // Only get regular videos (no shorts)
-        const regularVideos = videosData.filter(video => video && video.is_short === 0);
-
-        setTrendingVideos(regularVideos || []);
-
-        // Set last updated to the most recent capture time
-        if (videosData.length > 0) {
-          setLastUpdated(videosData[0].captured_at);
-        }
-
-      } catch (err) {
-        console.error('Error fetching trending data:', err);
-        setError(err.message);
+        const regularVideos = videosData.filter((video) => video && video.is_short === 0);
+        setTrendingVideos(regularVideos);
+        setLastUpdated(videosData[0]?.captured_at || null);
+      } catch (fetchError) {
+        console.error('Error fetching trending data:', fetchError);
+        setError(fetchError.message);
       } finally {
         setLoading(false);
       }
@@ -66,21 +55,10 @@ export default function CountryTrendingPage() {
     fetchTrendingData();
   }, [country]);
 
-  if (!countryInfo && !loading) {
+  if (!countryInfo && !loading && !error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
-        <ModernChartHeader />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">❌</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Country Not Found
-            </h1>
-            <p className="text-gray-600">
-              The country &quot;{country}&quot; doesn&apos;t exist or isn&apos;t supported yet.
-            </p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-slate-100">
+        <ChartHero title="Country not found" subtitle={`The country "${country}" isn't supported yet.`} />
       </div>
     );
   }
@@ -88,25 +66,20 @@ export default function CountryTrendingPage() {
   const countryName = countryInfo ? `${countryInfo.flag} ${countryInfo.name}` : 'Country';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-25 via-white to-rose-25">
-      {/* Modern Header */}
-      <ModernChartHeader />
+    <div className="min-h-screen bg-slate-100">
+      <ChartHero title={`${countryName} trending leaderboard`} subtitle="Most viewed videos today" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Trending Videos Chart (Top 100) */}
-        <div className="mb-12">
-          <ModernChartRanking
-            videos={trendingVideos || []}
-            title={`${countryName} Trending`}
-            loading={loading}
-            error={error}
-            lastUpdated={lastUpdated}
-            isShorts={false}
-            showStats={true}
-          />
-        </div>
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6">
+        <ModernChartRanking
+          videos={trendingVideos}
+          title={`${countryName} videos`}
+          loading={loading}
+          error={error}
+          lastUpdated={lastUpdated}
+          isShorts={false}
+        />
 
-
+        {countryInfo && <SeoFooter context="country" country={countryInfo} />}
       </div>
     </div>
   );

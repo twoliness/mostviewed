@@ -11,6 +11,7 @@ export const POPULAR_CATEGORIES_DISPLAY = [
   { id: 23, name: 'Comedy', slug: 'comedy' },
   { id: 22, name: 'People & Blogs', slug: 'people-blogs' },
   { id: 28, name: 'Science & Technology', slug: 'science-technology' },
+  { id: 27, name: 'Education', slug: 'education' },
   { id: 1, name: 'Film & Animation', slug: 'film-animation' },
   { id: 2, name: 'Autos & Vehicles', slug: 'autos-vehicles' },
   { id: 15, name: 'Pets & Animals', slug: 'pets-animals' },
@@ -23,4 +24,6 @@ export const SUPPORTED_COUNTRIES = [
   { code: 'CA', name: 'Canada', slug: 'canada', flag: '🇨🇦' },
   { code: 'AU', name: 'Australia', slug: 'australia', flag: '🇦🇺' },
   { code: 'IN', name: 'India', slug: 'india', flag: '🇮🇳' },
+  { code: 'DE', name: 'Germany', slug: 'germany', flag: '🇩🇪' },
+  { code: 'BR', name: 'Brazil', slug: 'brazil', flag: '🇧🇷' },
 ];

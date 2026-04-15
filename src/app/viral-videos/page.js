@@ -1,12 +1,18 @@
-import ComingSoon from '@/components/ComingSoon';
+import LeaderboardPage from '@/components/LeaderboardPage';
 
 export const metadata = {
-  title: "Viral Videos Today - Coming Soon | Most Viewed Today",
-  description: "Discover today's most viral YouTube videos. Advanced viral detection algorithms coming soon to MostViewedToday.com",
+  title: 'Viral Videos Today | Most Viewed Today',
+  description: 'Discover the most viral YouTube videos today based on rapid high-view performance from newly published content.',
 };
 
 export default function ViralVideosPage() {
   return (
-    <ComingSoon title="Viral Videos Today" />
+    <LeaderboardPage
+      heroTitle="Viral videos today"
+      heroSubtitle="Recently published videos with standout view velocity"
+      endpoint="/api/leaderboard/viral-videos?limit=100"
+      rankingTitle="Viral ranking"
+      footerContext="global"
+    />
   );
 }
