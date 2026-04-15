@@ -61,6 +61,15 @@ Disallow: /
 User-agent: Googlebot
 Allow: /
 
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+
 User-agent: Bingbot
 Allow: /
 
@@ -76,9 +85,9 @@ Allow: /
 User-agent: YandexBot
 Allow: /
 
-# Default rule - block all other bots
+# Default rule
 User-agent: *
-Disallow: /
+Allow: /
 
 # Sitemap location
 Sitemap: https://mostviewed.today/sitemap.xml

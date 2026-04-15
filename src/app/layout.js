@@ -108,6 +108,11 @@ export default function RootLayout({ children }) {
         
         {/* 100% privacy-first analytics */}
         <script async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6112368694080446"
+          crossOrigin="anonymous"
+        />
         <noscript>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt="" referrerPolicy="no-referrer-when-downgrade" />
