@@ -1,0 +1,45 @@
+# Most Viewed Today
+
+> A YouTube trending tracker that ranks the most viewed videos and Shorts worldwide, refreshed roughly every 30 minutes from live YouTube Data API snapshots.
+
+Most Viewed Today (https://mostviewed.today) tracks YouTube video and Shorts performance globally and by category and country, using periodic snapshots from the YouTube Data API. Each link below points to a clean Markdown summary of that page; for current rankings and view counts, follow the canonical URL inside each summary.
+
+## Leaderboards
+- [Global YouTube Trending Leaderboard](https://mostviewed.today/ai/global-leaderboard.md): All-categories leaderboard of the most viewed YouTube videos right now, with tabs for top categories and trending Shorts.
+- [YouTube Shorts Leaderboard](https://mostviewed.today/ai/shorts.md): Most viewed short-form YouTube videos today, ranked globally.
+- [Global YouTube Trends](https://mostviewed.today/ai/global.md): Global YouTube trending leaderboard with the most viewed videos worldwide, updated frequently.
+- [Trending Now](https://mostviewed.today/ai/trending-now.md): What is trending right now on YouTube, ranked by live, high-velocity view growth.
+- [Viral Videos Today](https://mostviewed.today/ai/viral-videos.md): The most viral YouTube videos today, based on rapid high-view performance from newly published content.
+- [Breaking Viral Content](https://mostviewed.today/ai/breaking-videos.md): Breaking viral YouTube videos from very recent uploads that are already pulling high views.
+- [Most Liked Videos](https://mostviewed.today/ai/most-liked.md): Most liked YouTube videos today, ranked by engagement alongside view context.
+- [Monthly Top Videos](https://mostviewed.today/ai/monthly-top.md): Top YouTube videos ranked by peak performance over the last 30 days.
+- [Weekly YouTube Charts](https://mostviewed.today/ai/weekly-charts.md): Top performing YouTube videos ranked by peak view counts over the past 7 days.
+- [Top YouTube Creators](https://mostviewed.today/ai/top-creators.md): Top YouTube creators ranked by total views across their leading videos and channels.
+
+## Categories
+- [Music – YouTube Trending Videos](https://mostviewed.today/ai/category-music.md): Most viewed YouTube videos right now in the Music category.
+- [Gaming – YouTube Trending Videos](https://mostviewed.today/ai/category-gaming.md): Most viewed YouTube videos right now in the Gaming category.
+- [Sports – YouTube Trending Videos](https://mostviewed.today/ai/category-sports.md): Most viewed YouTube videos right now in the Sports category.
+- [Entertainment – YouTube Trending Videos](https://mostviewed.today/ai/category-entertainment.md): Most viewed YouTube videos right now in the Entertainment category.
+- [News & Politics – YouTube Trending Videos](https://mostviewed.today/ai/category-news-politics.md): Most viewed YouTube videos right now in the News & Politics category.
+- [Howto & Style – YouTube Trending Videos](https://mostviewed.today/ai/category-howto-style.md): Most viewed YouTube videos right now in the Howto & Style category.
+- [Comedy – YouTube Trending Videos](https://mostviewed.today/ai/category-comedy.md): Most viewed YouTube videos right now in the Comedy category.
+- [People & Blogs – YouTube Trending Videos](https://mostviewed.today/ai/category-people-blogs.md): Most viewed YouTube videos right now in the People & Blogs category.
+- [Science & Technology – YouTube Trending Videos](https://mostviewed.today/ai/category-science-technology.md): Most viewed YouTube videos right now in the Science & Technology category.
+- [Education – YouTube Trending Videos](https://mostviewed.today/ai/category-education.md): Most viewed YouTube videos right now in the Education category.
+- [Film & Animation – YouTube Trending Videos](https://mostviewed.today/ai/category-film-animation.md): Most viewed YouTube videos right now in the Film & Animation category.
+- [Autos & Vehicles – YouTube Trending Videos](https://mostviewed.today/ai/category-autos-vehicles.md): Most viewed YouTube videos right now in the Autos & Vehicles category.
+- [Pets & Animals – YouTube Trending Videos](https://mostviewed.today/ai/category-pets-animals.md): Most viewed YouTube videos right now in the Pets & Animals category.
+
+## Countries
+- [YouTube Trending in United States](https://mostviewed.today/ai/trending-usa.md): Most viewed YouTube videos trending in United States (US) right now.
+- [YouTube Trending in United Kingdom](https://mostviewed.today/ai/trending-uk.md): Most viewed YouTube videos trending in United Kingdom (GB) right now.
+- [YouTube Trending in Canada](https://mostviewed.today/ai/trending-canada.md): Most viewed YouTube videos trending in Canada (CA) right now.
+- [YouTube Trending in Australia](https://mostviewed.today/ai/trending-australia.md): Most viewed YouTube videos trending in Australia (AU) right now.
+- [YouTube Trending in India](https://mostviewed.today/ai/trending-india.md): Most viewed YouTube videos trending in India (IN) right now.
+- [YouTube Trending in Germany](https://mostviewed.today/ai/trending-germany.md): Most viewed YouTube videos trending in Germany (DE) right now.
+- [YouTube Trending in Brazil](https://mostviewed.today/ai/trending-brazil.md): Most viewed YouTube videos trending in Brazil (BR) right now.
+
+## Optional
+
+- [Full combined content](https://mostviewed.today/llms-full.txt): all page summaries above concatenated into a single Markdown file.

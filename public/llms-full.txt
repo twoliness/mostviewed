@@ -1,0 +1,605 @@
+# Most Viewed Today — Full Content
+
+> A YouTube trending tracker that ranks the most viewed videos and Shorts worldwide, refreshed roughly every 30 minutes from live YouTube Data API snapshots.
+
+Generated: 2026-06-18
+
+---
+
+---
+title: "Global YouTube Trending Leaderboard"
+description: "All-categories leaderboard of the most viewed YouTube videos right now, with tabs for top categories and trending Shorts."
+url: "https://mostviewed.today/"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Global YouTube Trending Leaderboard
+
+All-categories leaderboard of the most viewed YouTube videos right now, with tabs for top categories and trending Shorts.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/
+
+---
+
+---
+title: "YouTube Shorts Leaderboard"
+description: "Most viewed short-form YouTube videos today, ranked globally."
+url: "https://mostviewed.today/shorts"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Shorts Leaderboard
+
+Most viewed short-form YouTube videos today, ranked globally.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/shorts
+
+---
+
+---
+title: "Global YouTube Trends"
+description: "Global YouTube trending leaderboard with the most viewed videos worldwide, updated frequently."
+url: "https://mostviewed.today/global"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Global YouTube Trends
+
+Global YouTube trending leaderboard with the most viewed videos worldwide, updated frequently.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/global
+
+---
+
+---
+title: "Trending Now"
+description: "What is trending right now on YouTube, ranked by live, high-velocity view growth."
+url: "https://mostviewed.today/trending-now"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Trending Now
+
+What is trending right now on YouTube, ranked by live, high-velocity view growth.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending-now
+
+---
+
+---
+title: "Viral Videos Today"
+description: "The most viral YouTube videos today, based on rapid high-view performance from newly published content."
+url: "https://mostviewed.today/viral-videos"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Viral Videos Today
+
+The most viral YouTube videos today, based on rapid high-view performance from newly published content.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/viral-videos
+
+---
+
+---
+title: "Breaking Viral Content"
+description: "Breaking viral YouTube videos from very recent uploads that are already pulling high views."
+url: "https://mostviewed.today/breaking-videos"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Breaking Viral Content
+
+Breaking viral YouTube videos from very recent uploads that are already pulling high views.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/breaking-videos
+
+---
+
+---
+title: "Most Liked Videos"
+description: "Most liked YouTube videos today, ranked by engagement alongside view context."
+url: "https://mostviewed.today/most-liked"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Most Liked Videos
+
+Most liked YouTube videos today, ranked by engagement alongside view context.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/most-liked
+
+---
+
+---
+title: "Monthly Top Videos"
+description: "Top YouTube videos ranked by peak performance over the last 30 days."
+url: "https://mostviewed.today/monthly-top"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Monthly Top Videos
+
+Top YouTube videos ranked by peak performance over the last 30 days.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/monthly-top
+
+---
+
+---
+title: "Weekly YouTube Charts"
+description: "Top performing YouTube videos ranked by peak view counts over the past 7 days."
+url: "https://mostviewed.today/weekly-charts"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Weekly YouTube Charts
+
+Top performing YouTube videos ranked by peak view counts over the past 7 days.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/weekly-charts
+
+---
+
+---
+title: "Top YouTube Creators"
+description: "Top YouTube creators ranked by total views across their leading videos and channels."
+url: "https://mostviewed.today/top-creators"
+site: "Most Viewed Today"
+type: "leaderboard"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Top YouTube Creators
+
+Top YouTube creators ranked by total views across their leading videos and channels.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/top-creators
+
+---
+
+---
+title: "Music – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Music category."
+url: "https://mostviewed.today/category/music"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Music – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Music category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/music
+
+---
+
+---
+title: "Gaming – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Gaming category."
+url: "https://mostviewed.today/category/gaming"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Gaming – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Gaming category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/gaming
+
+---
+
+---
+title: "Sports – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Sports category."
+url: "https://mostviewed.today/category/sports"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Sports – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Sports category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/sports
+
+---
+
+---
+title: "Entertainment – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Entertainment category."
+url: "https://mostviewed.today/category/entertainment"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Entertainment – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Entertainment category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/entertainment
+
+---
+
+---
+title: "News & Politics – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the News & Politics category."
+url: "https://mostviewed.today/category/news-politics"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# News & Politics – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the News & Politics category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/news-politics
+
+---
+
+---
+title: "Howto & Style – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Howto & Style category."
+url: "https://mostviewed.today/category/howto-style"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Howto & Style – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Howto & Style category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/howto-style
+
+---
+
+---
+title: "Comedy – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Comedy category."
+url: "https://mostviewed.today/category/comedy"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Comedy – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Comedy category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/comedy
+
+---
+
+---
+title: "People & Blogs – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the People & Blogs category."
+url: "https://mostviewed.today/category/people-blogs"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# People & Blogs – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the People & Blogs category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/people-blogs
+
+---
+
+---
+title: "Science & Technology – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Science & Technology category."
+url: "https://mostviewed.today/category/science-technology"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Science & Technology – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Science & Technology category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/science-technology
+
+---
+
+---
+title: "Education – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Education category."
+url: "https://mostviewed.today/category/education"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Education – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Education category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/education
+
+---
+
+---
+title: "Film & Animation – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Film & Animation category."
+url: "https://mostviewed.today/category/film-animation"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Film & Animation – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Film & Animation category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/film-animation
+
+---
+
+---
+title: "Autos & Vehicles – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Autos & Vehicles category."
+url: "https://mostviewed.today/category/autos-vehicles"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Autos & Vehicles – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Autos & Vehicles category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/autos-vehicles
+
+---
+
+---
+title: "Pets & Animals – YouTube Trending Videos"
+description: "Most viewed YouTube videos right now in the Pets & Animals category."
+url: "https://mostviewed.today/category/pets-animals"
+site: "Most Viewed Today"
+type: "category"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# Pets & Animals – YouTube Trending Videos
+
+Most viewed YouTube videos right now in the Pets & Animals category.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/category/pets-animals
+
+---
+
+---
+title: "YouTube Trending in United States"
+description: "Most viewed YouTube videos trending in United States (US) right now."
+url: "https://mostviewed.today/trending/usa"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in United States
+
+Most viewed YouTube videos trending in United States (US) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/usa
+
+---
+
+---
+title: "YouTube Trending in United Kingdom"
+description: "Most viewed YouTube videos trending in United Kingdom (GB) right now."
+url: "https://mostviewed.today/trending/uk"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in United Kingdom
+
+Most viewed YouTube videos trending in United Kingdom (GB) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/uk
+
+---
+
+---
+title: "YouTube Trending in Canada"
+description: "Most viewed YouTube videos trending in Canada (CA) right now."
+url: "https://mostviewed.today/trending/canada"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in Canada
+
+Most viewed YouTube videos trending in Canada (CA) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/canada
+
+---
+
+---
+title: "YouTube Trending in Australia"
+description: "Most viewed YouTube videos trending in Australia (AU) right now."
+url: "https://mostviewed.today/trending/australia"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in Australia
+
+Most viewed YouTube videos trending in Australia (AU) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/australia
+
+---
+
+---
+title: "YouTube Trending in India"
+description: "Most viewed YouTube videos trending in India (IN) right now."
+url: "https://mostviewed.today/trending/india"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in India
+
+Most viewed YouTube videos trending in India (IN) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/india
+
+---
+
+---
+title: "YouTube Trending in Germany"
+description: "Most viewed YouTube videos trending in Germany (DE) right now."
+url: "https://mostviewed.today/trending/germany"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in Germany
+
+Most viewed YouTube videos trending in Germany (DE) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/germany
+
+---
+
+---
+title: "YouTube Trending in Brazil"
+description: "Most viewed YouTube videos trending in Brazil (BR) right now."
+url: "https://mostviewed.today/trending/brazil"
+site: "Most Viewed Today"
+type: "country"
+data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
+generated: "2026-06-18"
+---
+
+# YouTube Trending in Brazil
+
+Most viewed YouTube videos trending in Brazil (BR) right now.
+
+This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
+
+Canonical page: https://mostviewed.today/trending/brazil
