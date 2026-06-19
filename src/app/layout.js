@@ -119,7 +119,7 @@ export default function RootLayout({ children }) {
         </noscript>
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased bg-white min-h-screen`}
+        className={`${inter.variable} font-sans antialiased min-h-screen`}
       >
         <Navigation />
         <main>{children}</main>

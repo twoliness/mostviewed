@@ -17,8 +17,13 @@ export default {
       const currentMinute = currentTime.getUTCMinutes();
       const currentHour = currentTime.getUTCHours();
 
+      // Check if this is the daily newsletter send (8:00 AM UTC)
+      if (currentHour === 8 && currentMinute === 0) {
+        apiEndpoint = '/api/newsletter/send-daily';
+        console.log('[Scheduled] Routing to newsletter send-daily endpoint');
+      }
       // Check if this is creator collection (every 12 hours at :10)
-      if (currentMinute === 10 && (currentHour % 12 === 0)) {
+      else if (currentMinute === 10 && (currentHour % 12 === 0)) {
         apiEndpoint = '/api/scheduled';
         console.log('[Scheduled] Routing to creator collection endpoint');
       }

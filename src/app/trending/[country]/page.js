@@ -57,7 +57,7 @@ export default function CountryTrendingPage() {
 
   if (!countryInfo && !loading && !error) {
     return (
-      <div className="min-h-screen bg-slate-100">
+      <div className="min-h-screen bg-background text-foreground">
         <ChartHero title="Country not found" subtitle={`The country "${country}" isn't supported yet.`} />
       </div>
     );
@@ -66,10 +66,10 @@ export default function CountryTrendingPage() {
   const countryName = countryInfo ? `${countryInfo.flag} ${countryInfo.name}` : 'Country';
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <ChartHero title={`${countryName} trending leaderboard`} subtitle="Most viewed videos today" />
 
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6">
+      <div className="mx-auto max-w-[1240px] px-6 pb-16">
         <ModernChartRanking
           videos={trendingVideos}
           title={`${countryName} videos`}

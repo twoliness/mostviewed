@@ -1,66 +1,77 @@
 import Image from 'next/image';
-import { formatTimeAgo, formatViewCountShort, getYouTubeUrl } from '@/lib/utils';
+import { Play } from 'lucide-react';
+import { formatViewCountShort, getYouTubeUrl } from '@/lib/utils';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
 
 const CATEGORY_META = {
-  10: { label: 'Music', className: 'bg-rose-100 text-rose-700' },
-  20: { label: 'Gaming', className: 'bg-indigo-100 text-indigo-700' },
-  17: { label: 'Sports', className: 'bg-amber-100 text-amber-700' },
-  24: { label: 'Entertainment', className: 'bg-fuchsia-100 text-fuchsia-700' },
-  25: { label: 'News', className: 'bg-emerald-100 text-emerald-700' },
+  10: { label: 'Music', className: 'bg-pink-500/10 text-pink-600' },
+  20: { label: 'Gaming', className: 'bg-emerald-500/10 text-emerald-600' },
+  17: { label: 'Sports', className: 'bg-amber-500/10 text-amber-700' },
+  24: { label: 'Entertainment', className: 'bg-violet-500/10 text-violet-600' },
+  25: { label: 'News & Politics', className: 'bg-sky-500/10 text-sky-600' },
+  26: { label: 'Howto & Style', className: 'bg-rose-500/10 text-rose-600' },
+  23: { label: 'Comedy', className: 'bg-orange-500/10 text-orange-600' },
+  22: { label: 'People & Blogs', className: 'bg-purple-500/10 text-purple-600' },
+  28: { label: 'Science & Tech', className: 'bg-blue-500/10 text-blue-600' },
+  1: { label: 'Film', className: 'bg-indigo-500/10 text-indigo-600' },
+  2: { label: 'Autos', className: 'bg-zinc-500/10 text-zinc-600' },
+  15: { label: 'Pets', className: 'bg-lime-500/10 text-lime-600' },
 };
 
-const categoryNames = POPULAR_CATEGORIES_DISPLAY.reduce((acc, category) => {
-  acc[category.id] = category.name;
+const categoryNames = POPULAR_CATEGORIES_DISPLAY.reduce((acc, cat) => {
+  acc[cat.id] = cat.name;
   return acc;
 }, {});
 
 function getCategoryBadge(categoryId) {
-  const numericCategory = Number(categoryId);
-  const fallbackLabel = categoryNames[numericCategory] || 'Category';
-  const fallback = { label: fallbackLabel, className: 'bg-slate-100 text-slate-600' };
-  return CATEGORY_META[numericCategory] || fallback;
+  const id = Number(categoryId);
+  const fallbackLabel = categoryNames[id] || 'Category';
+  return CATEGORY_META[id] || { label: fallbackLabel, className: 'bg-secondary text-muted-foreground' };
 }
 
 function formatDuration(duration) {
   if (!duration) return '0:00';
-
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return '0:00';
-
-  const hours = Number(match[1] || 0);
-  const minutes = Number(match[2] || 0);
-  const seconds = Number(match[3] || 0);
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  const h = Number(match[1] || 0);
+  const m = Number(match[2] || 0);
+  const s = Number(match[3] || 0);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function LoadingRows({ isShorts = false }) {
-  const rowClass = isShorts
-    ? 'grid grid-cols-[28px_72px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[28px_88px_minmax(0,1fr)_auto] sm:items-center sm:gap-4'
-    : 'grid grid-cols-[28px_112px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[28px_160px_minmax(0,1fr)_auto] sm:items-center sm:gap-4';
+function getStatus(rank) {
+  if (rank === 1) return { label: 'Top trending', className: 'text-brand' };
+  if (rank <= 5) return { label: 'Trending', className: 'text-muted-foreground' };
+  return { label: 'Rising', className: 'text-muted-foreground' };
+}
 
-  const thumbClass = isShorts
-    ? 'h-[96px] animate-pulse rounded-md bg-slate-200 sm:h-[122px]'
-    : 'h-[64px] animate-pulse rounded-md bg-slate-200 sm:h-[90px]';
+const TABLE_COLS = 'grid-cols-[36px_80px_1fr_100px] md:grid-cols-[40px_84px_1fr_120px_110px]';
 
+function LoadingRows() {
   return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <div key={index} className={rowClass}>
-          <div className="h-6 w-6 animate-pulse rounded-full bg-slate-200" />
-          <div className={thumbClass} />
-          <div className="space-y-2">
-            <div className="h-4 w-11/12 animate-pulse rounded bg-slate-200" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-          </div>
-          <div className="hidden h-8 w-16 animate-pulse rounded bg-slate-200 sm:block" />
-        </div>
-      ))}
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className={`grid ${TABLE_COLS} items-center gap-4 border-b border-border bg-secondary/50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground`}>
+        <div className="text-center">#</div>
+        <div>Thumb</div>
+        <div>Title</div>
+        <div className="hidden md:block">Category</div>
+        <div className="text-right">Views today</div>
+      </div>
+      <ul>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <li key={i} className={`grid ${TABLE_COLS} items-center gap-4 border-b border-border px-3 py-2.5 last:border-b-0`}>
+            <div className="mx-auto h-5 w-5 animate-pulse rounded-full bg-secondary" />
+            <div className="h-[48px] w-[80px] animate-pulse rounded-md bg-secondary md:h-[48px] md:w-[84px]" />
+            <div className="space-y-2">
+              <div className="h-4 w-full animate-pulse rounded bg-secondary" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-secondary" />
+            </div>
+            <div className="hidden h-5 w-20 animate-pulse rounded bg-secondary md:block" />
+            <div className="ml-auto h-5 w-14 animate-pulse rounded bg-secondary" />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -77,13 +88,11 @@ export default function ModernChartRanking({
   secondaryMetricKey = null,
   secondaryMetricLabel = '',
 }) {
-  if (loading) {
-    return <LoadingRows isShorts={isShorts} />;
-  }
+  if (loading) return <LoadingRows />;
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         Failed to load {title || 'leaderboard'}: {error}
       </div>
     );
@@ -91,62 +100,71 @@ export default function ModernChartRanking({
 
   if (!videos || videos.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+      <div className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
         No videos available yet.
       </div>
     );
   }
 
   return (
-    <div>
-      {(title || lastUpdated) && (
-        <div className="mb-3 flex items-end justify-between gap-3">
-          {title ? (
-            <h2 className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">{title}</h2>
-          ) : (
-            <div />
-          )}
-          {lastUpdated && <p className="text-xs text-slate-500">Updated {formatTimeAgo(lastUpdated)}</p>}
-        </div>
-      )}
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className={`grid ${TABLE_COLS} items-center gap-4 border-b border-border bg-secondary/50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground`}>
+        <div className="text-center">#</div>
+        <div>Thumb</div>
+        <div>Title</div>
+        <div className="hidden md:block">Category</div>
+        <div className="text-right">Views today</div>
+      </div>
 
-      <div className="space-y-2">
+      <ul>
         {videos.map((video, index) => {
           const rank = index + 1;
-          const categoryBadge = getCategoryBadge(video.category_id);
-          const primaryMetricValue = Number(video?.[metricKey] || 0);
-          const secondaryMetricValue = secondaryMetricKey ? Number(video?.[secondaryMetricKey] || 0) : null;
-          const rowClass = isShorts
-            ? 'grid grid-cols-[28px_72px_minmax(0,1fr)] gap-3 rounded-xl border bg-white p-3 sm:grid-cols-[28px_88px_minmax(0,1fr)_auto] sm:items-center sm:gap-4'
-            : 'grid grid-cols-[28px_112px_minmax(0,1fr)] gap-3 rounded-xl border bg-white p-3 sm:grid-cols-[28px_160px_minmax(0,1fr)_auto] sm:items-center sm:gap-4';
-          const thumbWrapClass = isShorts
-            ? 'relative h-[96px] w-[72px] overflow-hidden rounded-md bg-slate-100 sm:h-[122px] sm:w-[88px]'
-            : 'relative h-[64px] w-[112px] overflow-hidden rounded-md bg-slate-100 sm:h-[90px] sm:w-[160px]';
-          const imageSizes = isShorts ? '(max-width: 640px) 72px, 88px' : '(max-width: 640px) 112px, 160px';
+          const badge = getCategoryBadge(video.category_id);
+          const status = getStatus(rank);
+          const viewCount = Number(video?.[metricKey] || 0);
+          const secondaryValue = secondaryMetricKey ? Number(video?.[secondaryMetricKey] || 0) : null;
 
           return (
-            <article
+            <li
               key={video.id}
-              className={`${rowClass} ${
-                rank === 1 ? 'border-red-300' : 'border-slate-200'
-              }`}
+              className={`group grid ${TABLE_COLS} items-center gap-4 border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-hover-row`}
             >
-              <div className={`text-center text-lg font-medium ${rank === 1 ? 'text-red-600' : 'text-slate-500'}`}>
-                {rank}
+              <div className="flex items-center justify-center">
+                {rank === 1 ? (
+                  <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/12 text-[12px] font-semibold text-brand">
+                    1
+                  </span>
+                ) : (
+                  <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
+                    {rank}
+                  </span>
+                )}
               </div>
 
-              <a href={getYouTubeUrl(video.id)} target="_blank" rel="noopener noreferrer" className="group block">
-                <div className={thumbWrapClass}>
+              <a
+                href={getYouTubeUrl(video.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative block"
+              >
+                <div
+                  className={`relative overflow-hidden rounded-md ring-1 ring-border ${
+                    isShorts
+                      ? 'h-[72px] w-[42px] mx-auto'
+                      : 'aspect-video w-full'
+                  }`}
+                >
                   <Image
                     src={video.thumb_url}
                     alt={video.title}
                     fill
-                    sizes={imageSizes}
-                    className="object-cover transition group-hover:scale-[1.02]"
+                    sizes={isShorts ? '42px' : '(max-width: 768px) 80px, 84px'}
+                    className="object-cover"
                   />
-                  <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                  <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 font-mono text-[9px] font-medium text-white">
                     {formatDuration(video.duration)}
                   </span>
+                  <Play className="pointer-events-none absolute inset-0 m-auto h-4 w-4 fill-white text-white opacity-0 transition-opacity group-hover:opacity-90" />
                 </div>
               </a>
 
@@ -155,32 +173,46 @@ export default function ModernChartRanking({
                   href={getYouTubeUrl(video.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="line-clamp-2 text-sm font-medium leading-5 text-slate-900 hover:text-red-600"
+                  className="line-clamp-2 text-[13px] font-medium leading-snug hover:text-brand md:text-[14px]"
                 >
                   {video.title}
                 </a>
-                <p className="mt-1 truncate text-xs text-slate-500">{video.channel_title}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {isShorts && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">#Shorts</span>}
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${categoryBadge.className}`}>
-                    {categoryBadge.label}
+                <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  {video.channel_title}
+                </div>
+                <div className="mt-1.5 md:hidden">
+                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}>
+                    {badge.label}
                   </span>
                 </div>
               </div>
 
-              <div className="col-span-2 text-right sm:col-span-1">
-                <p className="text-lg font-medium text-slate-900">{formatViewCountShort(primaryMetricValue)}</p>
-                <p className="text-[11px] text-slate-500">{metricLabel}</p>
-                {secondaryMetricKey && (
-                  <p className="text-[10px] text-slate-400">
-                    {formatViewCountShort(secondaryMetricValue)} {secondaryMetricLabel}
-                  </p>
-                )}
-                <p className="mt-0.5 text-[10px] font-medium text-red-600">{rank === 1 ? 'Top trending' : 'Trending'}</p>
+              <div className="hidden md:block">
+                <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${badge.className}`}>
+                  {badge.label}
+                </span>
               </div>
-            </article>
+
+              <div className="text-right">
+                <div className="text-[13px] font-semibold tabular-nums md:text-[14px]">
+                  {formatViewCountShort(viewCount)}
+                </div>
+                {secondaryMetricKey && (
+                  <div className="text-[10px] text-muted-foreground">
+                    {formatViewCountShort(secondaryValue)} {secondaryMetricLabel}
+                  </div>
+                )}
+                <div className={`mt-0.5 text-[10px] font-medium uppercase tracking-wide ${status.className}`}>
+                  {status.label}
+                </div>
+              </div>
+            </li>
           );
         })}
+      </ul>
+
+      <div className="flex items-center border-t border-border bg-secondary/40 px-3 py-2 text-[12px] text-muted-foreground">
+        <span>Showing {videos.length}</span>
       </div>
     </div>
   );

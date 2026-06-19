@@ -13,6 +13,7 @@
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.105.0",
 		"@opennextjs/cloudflare": "^1.3.0",
 		"lucide-react": "^0.544.0",
 		"next": "^15.5.15",

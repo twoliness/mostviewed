@@ -39,10 +39,10 @@ export default function ShortsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <ChartHero title="YouTube Shorts leaderboard" subtitle="Most viewed short-form videos today" />
 
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6">
+      <div className="mx-auto max-w-[1240px] px-6 pb-16">
         <ModernChartRanking
           videos={shortsVideos}
           title="Global Shorts"

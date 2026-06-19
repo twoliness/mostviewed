@@ -1,10 +1,28 @@
 export default function ChartHero({ title, subtitle }) {
   return (
-    <section className="border-b border-slate-200 bg-white">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6 lg:px-8">
-        <h1 className="text-[22px] font-medium tracking-tight text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+    <div className="mx-auto max-w-[1240px] px-6 pt-10 pb-6">
+      <div className="mb-3 flex items-center gap-2 text-[12px] text-muted-foreground">
+        <span className="grid h-5 w-5 place-items-center rounded bg-secondary text-[12px]">
+          📈
+        </span>
+        <span>Leaderboards</span>
+        <span className="opacity-50">/</span>
+        <span>Daily</span>
       </div>
-    </section>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2 text-[26px] font-bold leading-tight tracking-tight sm:text-[34px]">
+            <span className="text-[22px] sm:text-[28px]">📊</span> {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1.5 text-[13px] text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Updates every 30 min
+        </span>
+      </div>
+    </div>
   );
 }

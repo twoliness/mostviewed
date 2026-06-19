@@ -38,10 +38,10 @@ export default function TopCreatorsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <ChartHero title="Top YouTube creators" subtitle="Creators ranked by total views across their top videos" />
 
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6">
+      <div className="mx-auto max-w-[1240px] px-6 pb-16">
         <CreatorsRanking creators={creators} loading={loading} error={error} lastUpdated={lastUpdated} />
         <SeoFooter context="global" />
       </div>
