@@ -451,7 +451,7 @@ export default function Home() {
               </h3>
               {trendingShorts.length > 0 ? (
                 <ul className="space-y-3">
-                  {trendingShorts.map((video) => (
+                  {trendingShorts.map((video, idx) => (
                     <li key={video.id} className="group flex items-start gap-3">
                       <a
                         href={getYouTubeUrl(video.id)}
@@ -468,7 +468,7 @@ export default function Home() {
                             className="object-cover"
                           />
                           <span className="absolute bottom-0.5 left-0.5 rounded bg-black/75 px-1 font-mono text-[8px] text-white">
-                            #S
+                            #{idx + 1}
                           </span>
                         </div>
                       </a>

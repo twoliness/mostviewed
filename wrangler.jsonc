@@ -37,7 +37,7 @@
 			"15,45 * * * *",   // Shorts collection (global + categories) at :15 and :45
 			"5 * * * *",       // Trending/country collection at :05 every hour
 			"10 */12 * * *",   // Creator collection at :10 every 12 hours
-			"0 8 * * *"        // Daily newsletter send at 8:00 AM UTC
+			"0 14 * * *"       // Daily newsletter send at 2:00 PM UTC (10 AM ET / 7 AM PT)
 		]
 	},
 	"send_email": [

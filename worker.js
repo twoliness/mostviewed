@@ -17,8 +17,8 @@ export default {
       const currentMinute = currentTime.getUTCMinutes();
       const currentHour = currentTime.getUTCHours();
 
-      // Check if this is the daily newsletter send (8:00 AM UTC)
-      if (currentHour === 8 && currentMinute === 0) {
+      // Check if this is the daily newsletter send (2:00 PM UTC)
+      if (currentHour === 14 && currentMinute === 0) {
         apiEndpoint = '/api/newsletter/send-daily';
         console.log('[Scheduled] Routing to newsletter send-daily endpoint');
       }

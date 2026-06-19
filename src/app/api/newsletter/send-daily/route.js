@@ -3,46 +3,75 @@ import { generateDailyBrief } from '@/lib/brief-generator';
 import { sendBriefEmail } from '@/lib/newsletter-emails';
 
 async function fetchLeaderboardData(db) {
-  const [videosResult, shortsResult, creatorsResult] = await Promise.all([
-    db
-      .prepare(
-        `SELECT v.id, v.title, v.channel_title, v.category_id, m.view_count,
-                c.name as category_name
-         FROM videos v
-         INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-         LEFT JOIN categories c ON v.category_id = c.id
-         WHERE v.is_short = 0
-         ORDER BY m.view_count DESC
-         LIMIT 10`
-      )
-      .all(),
-    db
-      .prepare(
-        `SELECT v.id, v.title, v.channel_title, m.view_count
-         FROM videos v
-         INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-         WHERE v.is_short = 1
-         ORDER BY m.view_count DESC
-         LIMIT 5`
-      )
-      .all(),
-    db
-      .prepare(
-        `SELECT c.channel_title, SUM(m.view_count) as total_views
-         FROM creators c
-         INNER JOIN videos v ON v.channel_id = c.channel_id
-         INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-         GROUP BY c.channel_id, c.channel_title
-         ORDER BY total_views DESC
-         LIMIT 3`
-      )
-      .all(),
-  ]);
+  const [videosResult, shortsResult, creatorsResult, categoryResult, countryResult] =
+    await Promise.all([
+      db
+        .prepare(
+          `SELECT v.id, v.title, v.channel_title, v.channel_id, v.category_id, m.view_count,
+                  c.name as category_name
+           FROM videos v
+           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           LEFT JOIN categories c ON v.category_id = c.id
+           WHERE v.is_short = 0
+           ORDER BY m.view_count DESC
+           LIMIT 10`
+        )
+        .all(),
+      db
+        .prepare(
+          `SELECT v.id, v.title, v.channel_title, m.view_count
+           FROM videos v
+           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           WHERE v.is_short = 1
+           ORDER BY m.view_count DESC
+           LIMIT 5`
+        )
+        .all(),
+      db
+        .prepare(
+          `SELECT v.channel_title, v.channel_id, COUNT(v.id) as video_count,
+                  SUM(m.view_count) as total_views
+           FROM videos v
+           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           WHERE v.is_short = 0
+           GROUP BY v.channel_id, v.channel_title
+           ORDER BY total_views DESC
+           LIMIT 5`
+        )
+        .all(),
+      db
+        .prepare(
+          `SELECT c.name as category, COUNT(v.id) as video_count,
+                  SUM(m.view_count) as total_views
+           FROM videos v
+           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           LEFT JOIN categories c ON v.category_id = c.id
+           WHERE v.is_short = 0 AND c.name IS NOT NULL
+           GROUP BY v.category_id, c.name
+           ORDER BY total_views DESC
+           LIMIT 8`
+        )
+        .all(),
+      db
+        .prepare(
+          `SELECT v.country_code, COUNT(v.id) as video_count,
+                  SUM(m.view_count) as total_views
+           FROM videos v
+           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           WHERE v.country_code IS NOT NULL AND v.country_code != ''
+           GROUP BY v.country_code
+           ORDER BY total_views DESC
+           LIMIT 5`
+        )
+        .all(),
+    ]);
 
   return {
     topVideos: videosResult.results || [],
     topShorts: shortsResult.results || [],
     topCreators: creatorsResult.results || [],
+    categorySummary: categoryResult.results || [],
+    countrySummary: countryResult.results || [],
   };
 }
 
@@ -67,13 +96,14 @@ export async function POST(request) {
 
   if (!brief) {
     console.log('[send-daily] Generating brief for', today);
-    const { topVideos, topShorts, topCreators } = await fetchLeaderboardData(db);
+    const { topVideos, topShorts, topCreators, categorySummary, countrySummary } =
+      await fetchLeaderboardData(db);
 
     if (topVideos.length === 0) {
       return Response.json({ error: 'No video data available yet' }, { status: 422 });
     }
 
-    brief = await generateDailyBrief({ topVideos, topShorts, topCreators });
+    brief = await generateDailyBrief({ topVideos, topShorts, topCreators, categorySummary, countrySummary });
 
     try {
       await env.VIDTRENDS_CACHE.put(kvKey, JSON.stringify(brief), {
