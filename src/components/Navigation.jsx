@@ -36,9 +36,6 @@ export default function Navigation() {
             {regionLabel}
             <ChevronDown className="h-3 w-3 opacity-60" />
           </button>
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/15 text-[11px] font-semibold text-brand">
-            YT
-          </div>
         </div>
       </div>
     </header>
