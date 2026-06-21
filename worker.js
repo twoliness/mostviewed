@@ -11,42 +11,24 @@ export default {
     console.log('[Scheduled] Cron trigger fired:', event.cron);
 
     try {
-      // Determine which endpoint to call based on cron pattern
-      let apiEndpoint;
-      const currentTime = new Date();
-      const currentMinute = currentTime.getUTCMinutes();
-      const currentHour = currentTime.getUTCHours();
+      // Route based on the exact cron pattern that fired this event.
+      // Routing on wall-clock time is unsafe: when two cron patterns share a
+      // minute (e.g. "0,30 * * * *" and "0 14 * * *" both fire at 14:00), each
+      // invocation would match the same branch and the job would run twice.
+      const cronRoutes = {
+        '0 14 * * *': '/api/newsletter/send-daily',
+        '10 */12 * * *': '/api/scheduled',
+        '5 * * * *': '/api/scheduled/countries',
+        '0,30 * * * *': '/api/scheduled/videos',
+        '15,45 * * * *': '/api/scheduled/shorts',
+      };
 
-      // Check if this is the daily newsletter send (2:00 PM UTC)
-      if (currentHour === 14 && currentMinute === 0) {
-        apiEndpoint = '/api/newsletter/send-daily';
-        console.log('[Scheduled] Routing to newsletter send-daily endpoint');
-      }
-      // Check if this is creator collection (every 12 hours at :10)
-      else if (currentMinute === 10 && (currentHour % 12 === 0)) {
-        apiEndpoint = '/api/scheduled';
-        console.log('[Scheduled] Routing to creator collection endpoint');
-      }
-      // Check if this is trending/country collection (every hour at :05)
-      else if (currentMinute === 5) {
-        apiEndpoint = '/api/scheduled/countries';
-        console.log('[Scheduled] Routing to trending/country collection endpoint');
-      }
-      // Check if this is videos collection (:00 or :30)
-      else if (currentMinute === 0 || currentMinute === 30) {
-        apiEndpoint = '/api/scheduled/videos';
-        console.log('[Scheduled] Routing to videos collection endpoint (global + categories)');
-      }
-      // Check if this is shorts collection (:15 or :45)
-      else if (currentMinute === 15 || currentMinute === 45) {
-        apiEndpoint = '/api/scheduled/shorts';
-        console.log('[Scheduled] Routing to shorts collection endpoint (global + categories)');
-      }
-      // Skip if we don't match any schedule
-      else {
-        console.log('[Scheduled] No matching cron schedule for this time');
+      const apiEndpoint = cronRoutes[event.cron];
+      if (!apiEndpoint) {
+        console.log('[Scheduled] No route for cron pattern:', event.cron);
         return new Response('OK', { status: 200 });
       }
+      console.log(`[Scheduled] Routing ${event.cron} -> ${apiEndpoint}`);
       
       // Create a synthetic request to the appropriate API endpoint
       const url = new URL(`https://mostviewed.today${apiEndpoint}`);
