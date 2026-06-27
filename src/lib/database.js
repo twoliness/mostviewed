@@ -115,6 +115,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 0
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
@@ -292,6 +293,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ? AND v.is_short = 0
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
@@ -319,6 +321,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ?
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
@@ -346,6 +349,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.category_id = ? AND v.is_short = 1
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
@@ -373,6 +377,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 1
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
@@ -400,6 +405,7 @@ export class DatabaseService {
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 1
+        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
       ORDER BY m.view_count DESC
       LIMIT ?
     `);
