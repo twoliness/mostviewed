@@ -104,7 +104,7 @@ export class YouTubeApiService {
     for (let i = 0; i < videoIds.length; i += 50) {
       const batch = videoIds.slice(i, i + 50);
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       url.searchParams.set('id', batch.join(','));
       url.searchParams.set('key', this.apiKey);
 
@@ -200,7 +200,7 @@ export class YouTubeApiService {
     for (let i = 0; i < videoIds.length; i += 50) {
       const batch = videoIds.slice(i, i + 50);
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       url.searchParams.set('id', batch.join(','));
       url.searchParams.set('key', this.apiKey);
 
@@ -288,7 +288,7 @@ export class YouTubeApiService {
     for (let i = 0; i < shortIds.length; i += 50) {
       const batch = shortIds.slice(i, i + 50);
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       url.searchParams.set('id', batch.join(','));
       url.searchParams.set('key', this.apiKey);
 
@@ -380,7 +380,7 @@ export class YouTubeApiService {
     for (let i = 0; i < shortIds.length; i += 50) {
       const batch = shortIds.slice(i, i + 50);
       const url = new URL(`${this.baseUrl}/videos`);
-      url.searchParams.set('part', 'snippet,contentDetails,statistics');
+      url.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       url.searchParams.set('id', batch.join(','));
       url.searchParams.set('key', this.apiKey);
 
@@ -574,6 +574,13 @@ export class YouTubeApiService {
     // API thumbnails don't preserve aspect ratio, so we can't reliably detect portrait orientation
     const isShort = durationSeconds <= 180 && durationSeconds > 0;
 
+    const tags = Array.isArray(video.snippet.tags) && video.snippet.tags.length > 0
+      ? JSON.stringify(video.snippet.tags)
+      : null;
+    const topicCategories = Array.isArray(video.topicDetails?.topicCategories) && video.topicDetails.topicCategories.length > 0
+      ? JSON.stringify(video.topicDetails.topicCategories)
+      : null;
+
     return {
       video: {
         id: video.id,
@@ -588,6 +595,8 @@ export class YouTubeApiService {
         is_short: isShort,
         width: thumbnail.width || null,
         height: thumbnail.height || null,
+        tags,
+        topic_categories: topicCategories,
       },
       stats: {
         video_id: video.id,
@@ -656,7 +665,7 @@ export class YouTubeApiService {
     for (let i = 0; i < videoIds.length; i += 50) {
       const batch = videoIds.slice(i, i + 50);
       const detailsUrl = new URL(`${this.baseUrl}/videos`);
-      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       detailsUrl.searchParams.set('id', batch.join(','));
       detailsUrl.searchParams.set('key', this.apiKey);
 
@@ -736,7 +745,7 @@ export class YouTubeApiService {
     for (let i = 0; i < shortIds.length; i += 50) {
       const batch = shortIds.slice(i, i + 50);
       const detailsUrl = new URL(`${this.baseUrl}/videos`);
-      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       detailsUrl.searchParams.set('id', batch.join(','));
       detailsUrl.searchParams.set('key', this.apiKey);
 
@@ -817,7 +826,7 @@ export class YouTubeApiService {
     for (let i = 0; i < videoIds.length; i += 50) {
       const batch = videoIds.slice(i, i + 50);
       const detailsUrl = new URL(`${this.baseUrl}/videos`);
-      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       detailsUrl.searchParams.set('id', batch.join(','));
       detailsUrl.searchParams.set('key', this.apiKey);
 
@@ -898,7 +907,7 @@ export class YouTubeApiService {
     for (let i = 0; i < shortIds.length; i += 50) {
       const batch = shortIds.slice(i, i + 50);
       const detailsUrl = new URL(`${this.baseUrl}/videos`);
-      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics');
+      detailsUrl.searchParams.set('part', 'snippet,contentDetails,statistics,topicDetails');
       detailsUrl.searchParams.set('id', batch.join(','));
       detailsUrl.searchParams.set('key', this.apiKey);
 

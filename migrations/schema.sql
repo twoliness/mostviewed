@@ -15,6 +15,8 @@ CREATE TABLE videos (
     width INTEGER, -- Thumbnail width (proxy for video orientation)
     height INTEGER, -- Thumbnail height (proxy for video orientation)
     country_code TEXT DEFAULT 'US', -- ISO 3166-1 alpha-2 country code
+    tags TEXT, -- JSON array of creator-supplied keyword tags from snippet.tags
+    topic_categories TEXT, -- JSON array of Wikipedia URLs from topicDetails.topicCategories
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );

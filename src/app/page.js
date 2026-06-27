@@ -193,7 +193,7 @@ function NewsletterCard() {
             disabled={status === 'loading'}
             className="h-9 w-full rounded-md bg-foreground text-[13px] font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {status === 'loading' ? 'Sending…' : 'Get the free brief'}
+            {status === 'loading' ? 'Sending…' : 'Subscribe'}
           </button>
         </form>
       )}

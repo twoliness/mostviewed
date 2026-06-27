@@ -21,6 +21,7 @@ export default {
         '5 * * * *': '/api/scheduled/countries',
         '0,30 * * * *': '/api/scheduled/videos',
         '15,45 * * * *': '/api/scheduled/shorts',
+        '25 3 * * *': '/api/scheduled/daily-rollups',
       };
 
       const apiEndpoint = cronRoutes[event.cron];

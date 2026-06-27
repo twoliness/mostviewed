@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { YouTubeApiService, POPULAR_CATEGORIES } from '@/lib/youtube-api';
 import { DatabaseService } from '@/lib/database';
+import { RollupService } from '@/lib/rollups';
 
 // Countries to collect data for
 const COUNTRIES = [
@@ -29,6 +30,7 @@ export async function POST(request) {
 
     const youtube = new YouTubeApiService(env.YOUTUBE_COUNTRIES_API_KEY);
     const db = new DatabaseService(env.DB);
+    const rollups = new RollupService(env.DB);
 
     const results = {};
 
@@ -50,6 +52,13 @@ export async function POST(request) {
 
         await db.batchUpsertVideosWithStats(globalData);
         console.log(`[Countries API] Inserted ${globalData.length} videos for ${country.name}`);
+        if (globalData.length > 0) {
+          await rollups.recordChartAndRefresh({
+            chart: `country:${country.code}:videos`,
+            capturedAt: db.getCaptureBucketTimestamp(),
+            rankedVideoIds: globalData.map(d => d.video.id),
+          });
+        }
 
         // Collect global shorts for this country (50 shorts)
         console.log(`[Countries API] Fetching trending shorts for ${country.name}...`);
@@ -65,6 +74,13 @@ export async function POST(request) {
 
         await db.batchUpsertVideosWithStats(shortsData);
         console.log(`[Countries API] Inserted ${shortsData.length} shorts for ${country.name}`);
+        if (shortsData.length > 0) {
+          await rollups.recordChartAndRefresh({
+            chart: `country:${country.code}:shorts`,
+            capturedAt: db.getCaptureBucketTimestamp(),
+            rankedVideoIds: shortsData.map(d => d.video.id),
+          });
+        }
 
         // Collect category-specific data for this country
         let categoryVideosCount = 0;
@@ -86,6 +102,11 @@ export async function POST(request) {
             if (categoryData.length > 0) {
               await db.batchUpsertVideosWithStats(categoryData);
               categoryVideosCount += categoryData.length;
+              await rollups.recordChartAndRefresh({
+                chart: `country:${country.code}:category:${categoryId}:videos`,
+                capturedAt: db.getCaptureBucketTimestamp(),
+                rankedVideoIds: categoryData.map(d => d.video.id),
+              });
             }
 
             // Small delay between API calls
@@ -105,6 +126,11 @@ export async function POST(request) {
             if (categoryShortsData.length > 0) {
               await db.batchUpsertVideosWithStats(categoryShortsData);
               categoryShortsCount += categoryShortsData.length;
+              await rollups.recordChartAndRefresh({
+                chart: `country:${country.code}:category:${categoryId}:shorts`,
+                capturedAt: db.getCaptureBucketTimestamp(),
+                rankedVideoIds: categoryShortsData.map(d => d.video.id),
+              });
             }
 
             // Small delay between API calls

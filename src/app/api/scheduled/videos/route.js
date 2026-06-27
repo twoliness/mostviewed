@@ -7,14 +7,18 @@ async function triggerVideosCollection(env) {
 
   const { YouTubeApiService, POPULAR_CATEGORIES } = await import('@/lib/youtube-api');
   const { DatabaseService } = await import('@/lib/database');
+  const { RollupService } = await import('@/lib/rollups');
 
   const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
   const db = new DatabaseService(env.DB);
+  const rollups = new RollupService(env.DB);
 
   let totalStats = {
     globalVideos: 0,
     categoriesProcessed: 0,
     categoryVideos: 0,
+    rankRowsRecorded: 0,
+    summariesUpdated: 0,
     errors: 0
   };
 
@@ -28,6 +32,12 @@ async function triggerVideosCollection(env) {
       await db.batchUpsertVideosWithStats(globalData);
       totalStats.globalVideos = globalData.length;
       console.log(`[Videos Collection] Inserted ${globalData.length} global trending videos`);
+
+      const capturedAt = db.getCaptureBucketTimestamp();
+      const rankedVideoIds = globalData.map(d => d.video.id);
+      await rollups.recordChartAndRefresh({ chart: 'global:videos', capturedAt, rankedVideoIds });
+      totalStats.rankRowsRecorded += rankedVideoIds.length;
+      totalStats.summariesUpdated += rankedVideoIds.length;
     }
   } catch (error) {
     console.error('[Videos Collection] Error collecting global videos:', error);
@@ -48,6 +58,16 @@ async function triggerVideosCollection(env) {
           await db.batchUpsertVideosWithStats(trendingData);
           totalStats.categoryVideos += trendingData.length;
           console.log(`[Videos Collection] Added ${trendingData.length} trending videos for category ${categoryId}`);
+
+          const capturedAt = db.getCaptureBucketTimestamp();
+          const rankedVideoIds = trendingData.map(d => d.video.id);
+          await rollups.recordChartAndRefresh({
+            chart: `category:${categoryId}:videos`,
+            capturedAt,
+            rankedVideoIds,
+          });
+          totalStats.rankRowsRecorded += rankedVideoIds.length;
+          totalStats.summariesUpdated += rankedVideoIds.length;
         }
       }
 

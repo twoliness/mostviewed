@@ -7,14 +7,18 @@ async function triggerShortsCollection(env) {
 
   const { YouTubeApiService, POPULAR_CATEGORIES } = await import('@/lib/youtube-api');
   const { DatabaseService } = await import('@/lib/database');
+  const { RollupService } = await import('@/lib/rollups');
 
   const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
   const db = new DatabaseService(env.DB);
+  const rollups = new RollupService(env.DB);
 
   let totalStats = {
     globalShorts: 0,
     categoriesProcessed: 0,
     categoryShorts: 0,
+    rankRowsRecorded: 0,
+    summariesUpdated: 0,
     errors: 0
   };
 
@@ -28,6 +32,12 @@ async function triggerShortsCollection(env) {
       await db.batchUpsertVideosWithStats(shortsData);
       totalStats.globalShorts = shortsData.length;
       console.log(`[Shorts Collection] Inserted ${shortsData.length} global trending shorts`);
+
+      const capturedAt = db.getCaptureBucketTimestamp();
+      const rankedVideoIds = shortsData.map(d => d.video.id);
+      await rollups.recordChartAndRefresh({ chart: 'global:shorts', capturedAt, rankedVideoIds });
+      totalStats.rankRowsRecorded += rankedVideoIds.length;
+      totalStats.summariesUpdated += rankedVideoIds.length;
     }
   } catch (error) {
     console.error('[Shorts Collection] Error collecting global shorts:', error);
@@ -48,6 +58,16 @@ async function triggerShortsCollection(env) {
           await db.batchUpsertVideosWithStats(shortsData);
           totalStats.categoryShorts += shortsData.length;
           console.log(`[Shorts Collection] Added ${shortsData.length} trending shorts for category ${categoryId}`);
+
+          const capturedAt = db.getCaptureBucketTimestamp();
+          const rankedVideoIds = shortsData.map(d => d.video.id);
+          await rollups.recordChartAndRefresh({
+            chart: `category:${categoryId}:shorts`,
+            capturedAt,
+            rankedVideoIds,
+          });
+          totalStats.rankRowsRecorded += rankedVideoIds.length;
+          totalStats.summariesUpdated += rankedVideoIds.length;
         }
       }
 

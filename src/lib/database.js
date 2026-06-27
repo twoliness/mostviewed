@@ -28,8 +28,8 @@ export class DatabaseService {
     console.log(`[Database] Upserting video: ${video.id} - ${video.title.substring(0, 50)}...`);
 
     const stmt = this.db.prepare(`
-      INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, tags, topic_categories, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(id) DO UPDATE SET
         title = excluded.title,
         description = excluded.description,
@@ -38,6 +38,8 @@ export class DatabaseService {
         width = excluded.width,
         height = excluded.height,
         country_code = excluded.country_code,
+        tags = COALESCE(excluded.tags, videos.tags),
+        topic_categories = COALESCE(excluded.topic_categories, videos.topic_categories),
         updated_at = CURRENT_TIMESTAMP
     `);
 
@@ -55,7 +57,9 @@ export class DatabaseService {
         video.is_short ? 1 : 0,
         video.width,
         video.height,
-        video.country_code || 'US'
+        video.country_code || 'US',
+        video.tags ?? null,
+        video.topic_categories ?? null
       ).run();
 
       console.log(`[Database] Successfully upserted video: ${video.id}`);
@@ -583,8 +587,8 @@ export class DatabaseService {
         // Upsert videos
         ...data.map(({ video }) =>
           this.db.prepare(`
-            INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO videos (id, title, description, channel_id, channel_title, category_id, published_at, thumb_url, duration, is_short, width, height, country_code, tags, topic_categories, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
               title = excluded.title,
               description = excluded.description,
@@ -593,6 +597,8 @@ export class DatabaseService {
               width = excluded.width,
               height = excluded.height,
               country_code = excluded.country_code,
+              tags = COALESCE(excluded.tags, videos.tags),
+              topic_categories = COALESCE(excluded.topic_categories, videos.topic_categories),
               updated_at = CURRENT_TIMESTAMP
           `).bind(
             video.id,
@@ -607,7 +613,9 @@ export class DatabaseService {
             video.is_short ? 1 : 0,
             video.width,
             video.height,
-            video.country_code || 'US'
+            video.country_code || 'US',
+            video.tags ?? null,
+            video.topic_categories ?? null
           )
         ),
         // Insert stats
