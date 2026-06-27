@@ -84,6 +84,90 @@ POST /api/scheduled/daily-rollups
 
 Routed by exact `event.cron` string in `worker.js` (not wall-clock minute), so crons that share a minute don't collide.
 
+## Next feature: Breakout discovery (pre-trending monetisation layer)
+
+Not built yet. Belongs in a future iteration. Tied to the monetisation flywheel:
+the newsletter's "Today's Breakout" section, Pro tier Pattern Alerts, and the
+Monthly Deep Dive Report's "Breakout creators — first-timers" all need this.
+
+### Goal
+
+Catch videos breaking out **before** they hit the global top — including those
+from creators we've never seen trend before. Avoid top-creator bias.
+
+### Design principle
+
+YouTube's chart system itself is the discovery surface. We already pull ~50
+charts per cron tick (global + 12 categories + 5 country videos + 5 country
+shorts + 60 country-categories). Any video gaining traction lands in at least
+one of those, even briefly. The first appearance of a video in any chart IS the
+breakout signal — channel size doesn't matter.
+
+This is why we do NOT seed discovery from "top creators." That would bias us
+toward known names and miss exactly the first-timer narrative the product
+needs.
+
+### Three-layer approach
+
+**Layer 1 — Velocity on new arrivals (FREE, no new API calls)**
+- Detect candidates where `first_seen >= now() - 24h` and views/hour is in the
+  95th percentile for its age bracket.
+- Excludes already-famous videos (those whose first_seen was years ago).
+- Pure SQL over existing video_summary + video_stats.
+
+**Layer 2 — Velocity oversampling (~100 units/day)**
+- For Layer 1 candidates (~20-50/day), call `videos.list?id=...&part=statistics`
+  every 15 min instead of waiting 30 min for the next cron.
+- Batches of 50 = 1 quota unit. 96 calls/day worst case.
+
+**Layer 3 — Off-platform discovery (EXPENSIVE, surgical use)**
+- `search.list?q=<topic>&publishedAfter=24h&order=viewCount` for videos that
+  went viral on X / Reddit / TikTok rather than via YouTube's chart system.
+- Topic input comes from analyzing rising `tags` / `topic_categories` in
+  video_summary (free).
+- 100 quota units per query. Cap at 1-3 queries/day.
+
+### Proposed schema
+
+```sql
+CREATE TABLE breakout_candidates (
+  video_id TEXT PRIMARY KEY,
+  detected_at TEXT NOT NULL,
+  source_chart TEXT NOT NULL,         -- chart where we first saw it
+  source_rank INTEGER NOT NULL,
+  age_hours_at_detection REAL NOT NULL,
+  velocity_at_detection REAL NOT NULL, -- views/hour
+  current_velocity REAL,
+  peak_velocity REAL,
+  score REAL NOT NULL,                -- composite breakout score
+  status TEXT NOT NULL,               -- 'watching' | 'confirmed' | 'killed' | 'graduated'
+  promoted_at TEXT,                   -- when it hit global top 50 (graduated)
+  updated_at TEXT NOT NULL
+);
+```
+
+### Endpoint
+
+`/api/scheduled/detect-breakouts` — runs at end of each videos/shorts/countries
+collection (or its own cron). Computes Layer 1 candidates and upserts.
+
+### Feeds into monetisation
+
+| Product | How it uses breakout_candidates |
+|---|---|
+| Newsletter "Today's Breakout" | Top-scored row from last 24h |
+| Pro Pattern Alerts | Push when score crosses threshold |
+| Monthly Report — "First-timer breakouts" | `JOIN creators WHERE subscriber_count < 1M` |
+| MVT Score | Early-velocity is a leading indicator of peak rank — feed back into score formula |
+
+### Open questions for when this gets built
+
+- Percentile lookup needs an "age-bracket" baseline (a 2h-old breakout has
+  different velocity than an 18h-old one). Seed from 9 months of historical
+  `video_stats` — easy, just bin by age and compute percentiles per bracket.
+- Should `breakout_candidates` retain killed candidates for analytics? Probably
+  yes (so we can measure false-positive rate over time).
+
 ## YouTube API quirks
 
 - `videos.list` quota is 1 unit per call regardless of `part`. Adding `topicDetails` and storing `snippet.tags` is free — both stored as JSON in `videos.tags` / `videos.topic_categories`.
