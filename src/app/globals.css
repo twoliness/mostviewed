@@ -12,6 +12,8 @@
   --color-border: var(--border);
   --color-brand: var(--brand);
   --color-hover-row: var(--hover-row);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --font-sans: var(--font-inter), ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Helvetica, Arial, sans-serif;
 }
@@ -27,6 +29,8 @@
   --border: oklch(0.92 0.005 80);
   --brand: oklch(0.62 0.2 25);
   --hover-row: oklch(0.97 0.004 80);
+  --chart-1: #f97316;
+  --chart-2: #2383e2;
 }
 
 @layer base {

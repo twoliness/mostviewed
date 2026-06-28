@@ -55,7 +55,7 @@ function formatHeroDate(lastUpdated) {
   });
 
   if (!lastUpdated) {
-    return `Most viewed videos today, ${day}`;
+    return `${day}`;
   }
 
   const updatedAt = new Date(lastUpdated);
@@ -66,7 +66,7 @@ function formatHeroDate(lastUpdated) {
     hour12: true,
   });
 
-  return `Most viewed videos today, ${day} · Last updated ${utcTime} UTC`;
+  return `${day} · Last updated ${utcTime} UTC`;
 }
 
 function buildCategorySummary(categories, videosByCategory) {

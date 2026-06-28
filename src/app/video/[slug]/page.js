@@ -9,6 +9,7 @@ import {
   getYouTubeUrl,
 } from '@/lib/utils';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
+import RankTimelineChart from '@/components/RankTimelineChart';
 
 const BASE_URL = 'https://mostviewed.today';
 
@@ -303,7 +304,7 @@ export default async function VideoDetailPage({ params }) {
                   valueClass={isCurrent ? '' : 'text-muted-foreground'}
                   sub={isCurrent
                     ? `${chartLabel(primary.chart)} · ${viewsUpdatedAgo}`
-                    : `off chart since ${formatShortDate(primary?.lastSeen)}`}
+                    : (primary?.lastSeen ? `since ${formatShortDate(primary.lastSeen)}` : null)}
                 />
                 <StatCell
                   label="Total Views"
@@ -368,37 +369,11 @@ export default async function VideoDetailPage({ params }) {
           </div>
 
           {globalPath || categoryPath ? (
-            <>
-              <div className="relative mb-2 h-[90px]">
-                <svg viewBox="0 0 300 90" width="100%" height="90" preserveAspectRatio="none" className="absolute inset-0">
-                  <line x1="0" y1="10" x2="300" y2="10" stroke="currentColor" strokeWidth="1" className="text-secondary" />
-                  <line x1="0" y1="45" x2="300" y2="45" stroke="currentColor" strokeWidth="1" className="text-secondary" />
-                  <line x1="0" y1="80" x2="300" y2="80" stroke="currentColor" strokeWidth="1" className="text-secondary" />
-                  {/* Category line first so global sits on top */}
-                  {categoryPath ? (
-                    <>
-                      <polygon points={categoryPath.polygon} fill="rgb(14 165 233)" opacity="0.07" />
-                      <polyline points={categoryPath.polyline} fill="none" stroke="rgb(14 165 233)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-                      <circle cx={categoryPath.peakPt.x} cy={categoryPath.peakPt.y} r="3.5" fill="rgb(14 165 233)" />
-                    </>
-                  ) : null}
-                  {globalPath ? (
-                    <>
-                      <polygon points={globalPath.polygon} fill="oklch(0.62 0.2 25)" opacity="0.08" />
-                      <polyline points={globalPath.polyline} fill="none" stroke="oklch(0.62 0.2 25)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                      <circle cx={globalPath.peakPt.x} cy={globalPath.peakPt.y} r="4" fill="oklch(0.62 0.2 25)" />
-                      <text x={globalPath.peakPt.x} y={Math.max(7, globalPath.peakPt.y - 3)} textAnchor="middle" fontSize="7" fill="oklch(0.62 0.2 25)" fontWeight="700">PEAK</text>
-                    </>
-                  ) : null}
-                </svg>
-                <div className="absolute left-0 top-[2px] text-[9px] text-muted-foreground">#{sharedMin}</div>
-                <div className="absolute left-0 top-[72px] text-[9px] text-muted-foreground">#{sharedMax}</div>
-              </div>
-              <div className="flex justify-between text-[9px] text-muted-foreground">
-                <span>{firstAll}</span>
-                <span>{lastAll}</span>
-              </div>
-            </>
+            <RankTimelineChart
+              globalSeries={globalStats?.sortedAsc ?? []}
+              categorySeries={categoryStats?.sortedAsc ?? []}
+              categoryLabel={category?.name || 'Category'}
+            />
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">
               Not enough rank history yet to draw a timeline.
