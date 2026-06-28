@@ -299,6 +299,22 @@ export default function Home() {
     []
   );
 
+  // Restore tab from ?tab= on first mount.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab && tabs.some((t) => t.id === tab)) setActiveTab(tab);
+  }, [tabs]);
+
+  const handleTabChange = useCallback((id) => {
+    setActiveTab(id);
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (id === TAB_ALL) url.searchParams.delete('tab');
+    else url.searchParams.set('tab', id);
+    window.history.replaceState(null, '', url.toString());
+  }, []);
+
   const activeVideos = useMemo(() => {
     if (activeTab === TAB_SHORTS) return globalShorts;
     if (activeTab === TAB_ALL) return globalVideos;
@@ -351,7 +367,7 @@ export default function Home() {
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-[13px] transition-colors ${
                         isActive
                           ? 'border-foreground font-medium text-foreground'

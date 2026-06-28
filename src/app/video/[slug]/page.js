@@ -329,24 +329,7 @@ export default async function VideoDetailPage({ params }) {
           })()}
         </section>
 
-        {/* Secondary chart summary — show the other chart inline if both have data */}
-        {globalStats && categoryStats ? (
-          <section className="mb-3 rounded-xl border border-border bg-card p-3 text-[12px]">
-            <span className="text-muted-foreground">Also on </span>
-            <span className="font-semibold">{chartLabel(categoryStats === (globalStats || categoryStats) ? globalChartKey : categoryChartKey)}:</span>
-            {(() => {
-              const other = globalStats === (globalStats || categoryStats) ? categoryStats : globalStats;
-              return (
-                <span className="ml-2">
-                  {other.currentRank ? <span className="font-semibold">Now #{other.currentRank}</span> : <span className="text-muted-foreground">Off chart</span>}
-                  <span className="text-muted-foreground"> · Peak #{other.peak} · {other.daysOnChart} days</span>
-                </span>
-              );
-            })()}
-          </section>
-        ) : null}
-
-        {/* Rank timeline — overlays global + category on a shared rank axis */}
+        {/* Rank timeline — global chart only (multi-chart history is paywalled) */}
         <section className="mb-3 rounded-xl border border-border bg-card p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -359,20 +342,12 @@ export default async function VideoDetailPage({ params }) {
                   Global
                 </span>
               ) : null}
-              {categoryPath ? (
-                <span className="flex items-center gap-1">
-                  <span className="inline-block h-2 w-2 rounded-full bg-sky-500" />
-                  {category?.name || 'Category'}
-                </span>
-              ) : null}
             </div>
           </div>
 
-          {globalPath || categoryPath ? (
+          {globalPath ? (
             <RankTimelineChart
               globalSeries={globalStats?.sortedAsc ?? []}
-              categorySeries={categoryStats?.sortedAsc ?? []}
-              categoryLabel={category?.name || 'Category'}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">

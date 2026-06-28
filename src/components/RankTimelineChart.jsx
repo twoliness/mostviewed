@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -16,18 +16,10 @@ import {
 } from "@/components/ui/chart";
 
 const DAY_FMT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const FULL_DAY_FMT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-function formatClock(date) {
-  let h = date.getHours();
-  const m = date.getMinutes();
-  const ampm = h >= 12 ? "pm" : "am";
-  h = h % 12 || 12;
-  return m === 0 ? `${h}${ampm}` : `${h}:${String(m).padStart(2, "0")}${ampm}`;
-}
-
-const formatDayTime = (date) => `${DAY_FMT.format(date)} ${formatClock(date)}`;
-const formatFull = (date) =>
-  `${DAY_FMT.format(date)}, ${date.getFullYear()} ${formatClock(date)}`;
+// Free preview window — full history is gated behind a future paywall.
+const PREVIEW_DAYS = 7;
 
 function toMs(iso) {
   if (!iso) return null;
@@ -35,23 +27,24 @@ function toMs(iso) {
   return Number.isFinite(t) ? t : null;
 }
 
-// Merge two series (global + category) keyed by captured_at timestamp.
+// Bucket captures into one row per UTC day, keeping the best (lowest) rank
+// per series. Sub-day cadence (we capture every 30min) would otherwise crowd
+// the X-axis with repeated date labels.
+function bucketByDay(series, key, map) {
+  for (const r of series || []) {
+    const t = toMs(r.captured_at);
+    if (t == null) continue;
+    const dayMs = Math.floor(t / 86400000) * 86400000;
+    const row = map.get(dayMs) || { t: dayMs };
+    if (row[key] == null || r.rank < row[key]) row[key] = r.rank;
+    map.set(dayMs, row);
+  }
+}
+
 function mergeSeries(globalSeries, categorySeries) {
   const map = new Map();
-  for (const r of globalSeries || []) {
-    const t = toMs(r.captured_at);
-    if (t == null) continue;
-    const row = map.get(t) || { t };
-    row.global = r.rank;
-    map.set(t, row);
-  }
-  for (const r of categorySeries || []) {
-    const t = toMs(r.captured_at);
-    if (t == null) continue;
-    const row = map.get(t) || { t };
-    row.category = r.rank;
-    map.set(t, row);
-  }
+  bucketByDay(globalSeries, "global", map);
+  bucketByDay(categorySeries, "category", map);
   return [...map.values()].sort((a, b) => a.t - b.t);
 }
 
@@ -60,22 +53,22 @@ export default function RankTimelineChart({
   categorySeries = [],
   categoryLabel = "Category",
 }) {
-  const data = React.useMemo(
-    () => mergeSeries(globalSeries, categorySeries),
-    [globalSeries, categorySeries]
-  );
+  const data = React.useMemo(() => {
+    const merged = mergeSeries(globalSeries, categorySeries);
+    if (!merged.length) return merged;
+    // Free preview = last PREVIEW_DAYS days, anchored to the most recent
+    // captured point. Earlier history will live behind a future paywall.
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const cutoff = merged[merged.length - 1].t - PREVIEW_DAYS * ONE_DAY;
+    return merged.filter((d) => d.t >= cutoff);
+  }, [globalSeries, categorySeries]);
 
   const hasGlobal = data.some((d) => d.global != null);
   const hasCategory = data.some((d) => d.category != null);
 
-  // Pick X tick + tooltip formatters based on the visible time span.
-  const spanMs = data.length > 1 ? data[data.length - 1].t - data[0].t : 0;
-  const ONE_DAY = 24 * 60 * 60 * 1000;
-  const xTickFormatter = spanMs < ONE_DAY
-    ? (v) => formatClock(new Date(v))
-    : spanMs < 3 * ONE_DAY
-      ? (v) => formatDayTime(new Date(v))
-      : (v) => DAY_FMT.format(new Date(v));
+  // Always show dates on the X-axis — no clock times. Capture cadence is
+  // sub-hourly, so multiple points share a day; minTickGap dedupes labels.
+  const xTickFormatter = (v) => DAY_FMT.format(new Date(v));
 
   // Baseline for the area fill — without this, recharts fills from value=0
   // which (with reversed Y) is at the top, drawing the area upward.
@@ -98,7 +91,7 @@ export default function RankTimelineChart({
 
   return (
     <ChartContainer config={config} className="aspect-auto h-[220px] w-full">
-      <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
+      <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="t"
@@ -127,14 +120,14 @@ export default function RankTimelineChart({
           cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
           content={
             <ChartTooltipContent
-              labelFormatter={(v) => formatFull(new Date(v))}
+              labelFormatter={(v) => FULL_DAY_FMT.format(new Date(v))}
               formatter={(value) => (value == null ? "—" : `#${value}`)}
               indicator="dot"
             />
           }
         />
         {hasCategory ? (
-          <Area
+          <Line
             dataKey="category"
             type="monotone"
             stroke="var(--color-category)"
@@ -142,12 +135,12 @@ export default function RankTimelineChart({
             fill="none"
             connectNulls
             isAnimationActive={false}
-            dot={false}
+            dot={{ r: 2.5, strokeWidth: 0 }}
             activeDot={{ r: 3 }}
           />
         ) : null}
         {hasGlobal ? (
-          <Area
+          <Line
             dataKey="global"
             type="monotone"
             stroke="var(--color-global)"
@@ -155,11 +148,11 @@ export default function RankTimelineChart({
             fill="none"
             connectNulls
             isAnimationActive={false}
-            dot={false}
+            dot={{ r: 2.5, strokeWidth: 0 }}
             activeDot={{ r: 3.5 }}
           />
         ) : null}
-      </AreaChart>
+      </LineChart>
     </ChartContainer>
   );
 }
