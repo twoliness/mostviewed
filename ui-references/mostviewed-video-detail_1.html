@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess The Animal And Win $10,000 — MrBeast · mostviewed.today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --orange: #f97316;
+  --orange-light: #fff7ed;
+  --orange-border: #fed7aa;
+  --black: #0f0f0f;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6b7280;
+  --gray-400: #9ca3af;
+  --gray-200: #e5e7eb;
+  --gray-100: #f3f4f6;
+  --gray-50: #f9fafb;
+  --white: #ffffff;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-900);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SITE HEADER ── */
+.site-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.site-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--black);
+  color: white;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+}
+.logo-text { color: var(--black); }
+.logo-text span { color: var(--orange); }
+.global-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500; color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--white); cursor: pointer;
+}
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  padding: 12px 16px 0;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--gray-400);
+  max-width: 680px; margin: 0 auto;
+}
+.breadcrumb a { color: var(--gray-500); text-decoration: none; }
+
+/* ── CONTAINER ── */
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px 80px;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+/* ── PILL ── */
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 500;
+}
+.pill-orange { background: var(--orange-light); color: var(--orange); }
+.pill-gray { background: var(--gray-100); color: var(--gray-500); }
+.pill-green { background: var(--green-light); color: var(--green); }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gray-400); margin-bottom: 12px;
+}
+
+/* ── STAT GRID ── */
+.stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--gray-200);
+  border-radius: 10px; overflow: hidden;
+  margin-bottom: 12px;
+}
+.stat-cell {
+  background: var(--white); padding: 14px;
+}
+.stat-cell .label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gray-400); margin-bottom: 4px;
+}
+.stat-cell .value {
+  font-size: 20px; font-weight: 700;
+  color: var(--gray-900); line-height: 1;
+}
+.stat-cell .sub {
+  font-size: 11px; color: var(--gray-400); margin-top: 2px;
+}
+
+/* ── UPDATE BADGE ── */
+.update-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f0fdf4; color: var(--green);
+  border: 1px solid #bbf7d0;
+  border-radius: 100px; padding: 4px 10px;
+  font-size: 11px; font-weight: 500;
+}
+.update-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── MOAT ROWS (FREE) ── */
+.moat-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+}
+.moat-row:last-child { border-bottom: none; }
+.moat-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--orange-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.moat-label { font-size: 11px; color: var(--gray-500); }
+.moat-value { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+
+/* ── PRO LOCK WRAPPER ── */
+.pro-section {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+/* blurred card behind the gate */
+.pro-blurred {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px;
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* gate overlay */
+.pro-gate {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  border: 1.5px solid var(--orange-border);
+}
+
+.pro-gate-icon {
+  width: 40px; height: 40px;
+  background: var(--orange-light);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.pro-gate-title {
+  font-size: 15px; font-weight: 800;
+  color: var(--gray-900); margin-bottom: 4px;
+}
+.pro-gate-sub {
+  font-size: 12px; color: var(--gray-500);
+  line-height: 1.5; margin-bottom: 14px;
+  max-width: 240px;
+}
+.pro-gate-features {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  justify-content: center; margin-bottom: 14px;
+}
+.pro-btn {
+  background: var(--orange);
+  color: white;
+  font-size: 13px; font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 8px; border: none;
+  cursor: pointer; width: 100%;
+  max-width: 220px;
+  margin-bottom: 6px;
+}
+.pro-login {
+  font-size: 11px; color: var(--gray-400);
+}
+.pro-login a { color: var(--orange); text-decoration: none; font-weight: 500; }
+
+/* ── RANK CHART ── */
+.rank-chart-wrap {
+  position: relative; height: 90px; margin-bottom: 20px;
+}
+.rank-chart-wrap svg { width: 100%; height: 100%; }
+.rank-axis-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--gray-400);
+  padding: 0 4px; margin-top: -6px;
+}
+
+/* ── VIEW VELOCITY BARS ── */
+.velocity-bars {
+  display: flex; align-items: flex-end;
+  gap: 3px; height: 50px; margin-bottom: 8px;
+}
+.v-bar {
+  flex: 1; border-radius: 2px 2px 0 0; min-height: 4px;
+}
+.velocity-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--gray-400);
+}
+
+/* ── ENGAGEMENT TILES ── */
+.engagement-tiles {
+  display: flex; gap: 8px; margin-bottom: 8px;
+}
+.eng-tile {
+  flex: 1; text-align: center;
+  border-radius: 8px; padding: 10px 6px;
+}
+
+/* ── VIDEO ROW ── */
+.video-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+}
+.video-row:last-child { border-bottom: none; }
+.thumb-placeholder {
+  width: 72px; height: 44px; border-radius: 6px;
+  background: var(--gray-100); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.video-info { flex: 1; min-width: 0; }
+.video-title {
+  font-size: 13px; font-weight: 600; color: var(--gray-900);
+  line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.video-meta { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+.rank-badge {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.rank-n { background: var(--gray-100); color: var(--gray-500); }
+
+/* ── NEWSLETTER ── */
+.newsletter-strip {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.nl-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #fef2f2;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.nl-text { flex: 1; }
+.nl-title { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.nl-sub { font-size: 11px; color: var(--gray-400); margin-top: 1px; }
+.nl-btn {
+  background: var(--black); color: var(--white);
+  font-size: 12px; font-weight: 600;
+  padding: 8px 14px; border-radius: 8px;
+  border: none; cursor: pointer; white-space: nowrap;
+}
+
+/* ── PATTERN CARD ── */
+.pattern-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  overflow: hidden; margin-bottom: 12px;
+}
+.pattern-header { padding: 16px; }
+.pattern-number {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--orange); margin-bottom: 6px;
+}
+.pattern-title {
+  font-size: 16px; font-weight: 800;
+  line-height: 1.25; color: var(--gray-900); margin-bottom: 8px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Site Header -->
+<header class="site-header">
+  <a class="site-logo" href="#">
+    <div class="logo-icon">m</div>
+    <div class="logo-text">mostviewed<span>.today</span></div>
+  </a>
+  <button class="global-btn">🌐 Global ▾</button>
+</header>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a href="#">📈 Leaderboards</a>
+  <span>/</span>
+  <a href="#">Videos</a>
+  <span>/</span>
+  <span>Guess The Animal...</span>
+</div>
+
+<div class="container">
+
+  <!-- ── VIDEO HERO ── -->
+  <div class="card" style="padding:0; overflow:hidden; margin-top:12px;">
+    <div style="background:var(--gray-200); width:100%; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; font-size:52px;">▶️</div>
+    <div style="padding:14px;">
+      <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; align-items:center;">
+        <span class="pill pill-orange">🔥 Trending Now</span>
+        <span class="pill pill-gray">Entertainment</span>
+        <span class="update-badge"><span class="update-dot"></span>Live</span>
+      </div>
+      <div style="font-size:17px; font-weight:800; line-height:1.3; color:var(--gray-900); margin-bottom:6px;">
+        Guess The Animal And Win $10,000
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="font-size:12px; color:var(--gray-400);">MrBeast</div>
+        <div style="font-size:12px; color:var(--gray-400);">·</div>
+        <div style="font-size:12px; color:var(--gray-400);">Jun 7, 2026</div>
+        <div style="font-size:12px; color:var(--gray-400);">·</div>
+        <a href="https://youtube.com" style="font-size:12px; color:var(--orange); font-weight:500; text-decoration:none;">Watch on YouTube ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FREE: CORE STATS ── -->
+  <div class="stat-grid">
+    <div class="stat-cell">
+      <div class="label">Current Rank</div>
+      <div class="value">#1</div>
+      <div class="sub">30 min ago</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">Total Views</div>
+      <div class="value">369M</div>
+      <div class="sub">all-time</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">Peak Rank</div>
+      <div class="value" style="color:var(--orange);">#1</div>
+      <div class="sub">May 10, 2026</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">Days on Chart</div>
+      <div class="value">49</div>
+      <div class="sub">and counting</div>
+    </div>
+  </div>
+
+  <!-- ── FREE: RANK TIMELINE (summary only) ── -->
+  <div class="card">
+    <div class="section-label">Rank timeline</div>
+
+    <!-- Chart — free, visible -->
+    <div class="rank-chart-wrap">
+      <svg viewBox="0 0 300 90" width="100%" height="90" preserveAspectRatio="none">
+        <line x1="0" y1="10" x2="300" y2="10" stroke="#f3f4f6" stroke-width="1"/>
+        <line x1="0" y1="45" x2="300" y2="45" stroke="#f3f4f6" stroke-width="1"/>
+        <line x1="0" y1="80" x2="300" y2="80" stroke="#f3f4f6" stroke-width="1"/>
+        <polygon
+          points="0,80 43,10 86,10 129,10 172,10 215,18 258,12 300,10 300,90 0,90"
+          fill="#f97316" opacity="0.08"/>
+        <polyline
+          points="0,80 43,10 86,10 129,10 172,10 215,18 258,12 300,10"
+          fill="none" stroke="#f97316" stroke-width="2.5"
+          stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="43" cy="10" r="4" fill="#f97316"/>
+        <circle cx="300" cy="10" r="4" fill="#f97316"/>
+        <!-- peak label -->
+        <text x="43" y="7" text-anchor="middle" font-size="7" fill="#f97316" font-family="Inter, sans-serif" font-weight="700">PEAK</text>
+      </svg>
+      <div style="position:absolute; left:0; top:4px; font-size:9px; color:var(--gray-400);">#1</div>
+      <div style="position:absolute; left:0; top:74px; font-size:9px; color:var(--gray-400);">#56</div>
+    </div>
+    <div class="rank-axis-labels">
+      <span>May 7</span><span>May 14</span><span>May 21</span><span>May 28</span><span>Jun 7</span>
+    </div>
+
+    <!-- Free summary pills below chart -->
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:14px;">
+      <div style="background:var(--orange-light); border-radius:8px; padding:8px 12px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size:16px; font-weight:800; color:var(--orange);">#1</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">Peak rank</div>
+      </div>
+      <div style="background:var(--gray-50); border:1px solid var(--gray-100); border-radius:8px; padding:8px 12px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size:16px; font-weight:800; color:var(--gray-700);">49</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">Days on chart</div>
+      </div>
+      <div style="background:var(--gray-50); border:1px solid var(--gray-100); border-radius:8px; padding:8px 12px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size:16px; font-weight:800; color:var(--gray-700);">18d</div>
+        <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">At #1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PRO GATE: Full Rank Timeline breakdown ── -->
+  <div class="pro-section">
+    <!-- Blurred content behind gate -->
+    <div class="pro-blurred">
+      <div class="section-label">Rank timeline · full breakdown</div>
+      <div class="moat-row">
+        <div class="moat-icon">🥇</div>
+        <div style="flex:1;">
+          <div class="moat-value">#1 · 18 days total</div>
+          <div class="moat-label">May 10–14 · May 17–25 · Jun 7</div>
+        </div>
+        <div style="background:var(--orange-light); color:var(--orange); font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">longest</div>
+      </div>
+      <div class="moat-row">
+        <div class="moat-icon">🥈</div>
+        <div style="flex:1;">
+          <div class="moat-value">#2 · 3 days</div>
+          <div class="moat-label">Jun 5–6, 2026</div>
+        </div>
+      </div>
+      <div class="moat-row">
+        <div class="moat-icon" style="background:var(--gray-100);">📍</div>
+        <div style="flex:1;">
+          <div class="moat-value">#6 · 1 day</div>
+          <div class="moat-label">May 30, 2026</div>
+        </div>
+      </div>
+      <div class="moat-row">
+        <div class="moat-icon" style="background:var(--gray-100);">📍</div>
+        <div style="flex:1;">
+          <div class="moat-value">#56 · 3 days</div>
+          <div class="moat-label">May 7–9 · entered chart here</div>
+        </div>
+      </div>
+      <!-- fake velocity -->
+      <div style="margin-top:16px;">
+        <div class="section-label">View velocity · views/hour</div>
+        <div class="velocity-bars">
+          <div class="v-bar" style="height:20%; background:var(--gray-200);"></div>
+          <div class="v-bar" style="height:25%; background:var(--gray-200);"></div>
+          <div class="v-bar" style="height:100%; background:var(--orange); opacity:0.9;"></div>
+          <div class="v-bar" style="height:85%; background:var(--orange); opacity:0.7;"></div>
+          <div class="v-bar" style="height:70%; background:var(--orange); opacity:0.6;"></div>
+          <div class="v-bar" style="height:30%; background:var(--gray-200);"></div>
+          <div class="v-bar" style="height:22%; background:var(--gray-200);"></div>
+          <div class="v-bar" style="height:15%; background:var(--gray-200);"></div>
+        </div>
+      </div>
+      <!-- fake engagement -->
+      <div style="margin-top:16px;">
+        <div class="section-label">Engagement rate trend</div>
+        <div class="engagement-tiles">
+          <div class="eng-tile" style="background:var(--orange-light);">
+            <div style="font-size:16px; font-weight:800; color:var(--orange);">3.01%</div>
+            <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">Day 1</div>
+          </div>
+          <div class="eng-tile" style="background:var(--gray-50); border:1px solid var(--gray-100);">
+            <div style="font-size:16px; font-weight:800; color:var(--gray-700);">2.5%</div>
+            <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">Week 1</div>
+          </div>
+          <div class="eng-tile" style="background:var(--gray-50); border:1px solid var(--gray-100);">
+            <div style="font-size:16px; font-weight:800; color:var(--gray-400);">1.1%</div>
+            <div style="font-size:10px; color:var(--gray-400); margin-top:2px;">Now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gate overlay -->
+    <div class="pro-gate">
+      <div class="pro-gate-icon">🔒</div>
+      <div class="pro-gate-title">Pro data — unlock full insights</div>
+      <div class="pro-gate-sub">See exactly how long this video held each rank, view velocity, and engagement decay over time.</div>
+      <div class="pro-gate-features">
+        <span class="pill pill-orange">📍 Full rank timeline</span>
+        <span class="pill pill-orange">⚡ View velocity</span>
+        <span class="pill pill-orange">📊 Engagement trend</span>
+        <span class="pill pill-orange">🧠 Pattern alerts</span>
+      </div>
+      <button class="pro-btn">Get Pro — $9/mo</button>
+      <div class="pro-login">Already a member? <a href="#">Sign in</a></div>
+    </div>
+  </div>
+
+  <!-- ── PATTERN OF THE WEEK TIE-IN ── -->
+  <div style="font-size:12px; font-weight:600; color:var(--gray-500); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">Pattern spotted in this video</div>
+  <div class="pattern-card">
+    <div class="pattern-header">
+      <div class="pattern-number">🧠 Pattern of the Week · Jun 23, 2026</div>
+      <div class="pattern-title">Cash Prize + Survival = YouTube's Most Durable Format</div>
+      <div style="font-size:13px; color:var(--gray-500); margin-bottom:10px; line-height:1.5;">
+        This video is one of 14 in the top 100 using this format this week. Combined: 2.4B views.
+      </div>
+      <a href="#" style="font-size:13px; font-weight:600; color:var(--orange); text-decoration:none;">Read the full pattern analysis →</a>
+    </div>
+  </div>
+
+  <!-- ── MORE FROM MRBEAST ── -->
+  <div class="card">
+    <div class="section-label">More from MrBeast · currently trending</div>
+    <div class="video-row">
+      <div class="rank-badge rank-n">3</div>
+      <div class="thumb-placeholder">🎬</div>
+      <div class="video-info">
+        <div class="video-title">Last To Leave Grocery Store Wins $250,000</div>
+        <div class="video-meta">31 days · Peak #1</div>
+      </div>
+    </div>
+    <div class="video-row">
+      <div class="rank-badge rank-n">7</div>
+      <div class="thumb-placeholder">🎬</div>
+      <div class="video-info">
+        <div class="video-title">Survive 30 Days On An Island With Your Ex</div>
+        <div class="video-meta">22 days · Peak #1</div>
+      </div>
+    </div>
+    <div class="video-row">
+      <div class="rank-badge rank-n">12</div>
+      <div class="thumb-placeholder">🎬</div>
+      <div class="video-info">
+        <div class="video-title">I Gave Away $1,000,000 To Random People</div>
+        <div class="video-meta">18 days · Peak #2</div>
+      </div>
+    </div>
+    <div style="padding-top:12px; text-align:center;">
+      <a href="#" style="font-size:13px; font-weight:600; color:var(--orange); text-decoration:none;">View MrBeast creator page →</a>
+    </div>
+  </div>
+
+  <!-- ── NEWSLETTER ── -->
+  <div class="newsletter-strip">
+    <div class="nl-icon">✉️</div>
+    <div class="nl-text">
+      <div class="nl-title">The Daily Viral Brief</div>
+      <div class="nl-sub">Get breakout videos like this daily, free</div>
+    </div>
+    <button class="nl-btn">Subscribe</button>
+  </div>
+
+</div>
+</body>
+</html>

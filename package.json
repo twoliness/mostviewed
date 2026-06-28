@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "next dev",
 		"dev:turbo": "next dev --turbopack",
+		"dev:remote": "opennextjs-cloudflare build && opennextjs-cloudflare preview -- --remote --var DEV_REMOTE_D1:1",
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",

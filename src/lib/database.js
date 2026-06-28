@@ -100,27 +100,31 @@ export class DatabaseService {
    * Get global top 10 leaderboard with latest stats (videos only, no shorts)
    */
   async getGlobalLeaderboard(limit= 10) {
+    return this._chartLeaderboard('global:videos', limit);
+  }
+
+  // Reads YouTube's actual chart position from video_rank_history for the most
+  // recent tick of that chart. Position = YouTube's #1 (not our view-sorted #1).
+  // mv_latest_video_stats is LEFT JOINed only for the view_count display value.
+  async _chartLeaderboard(chart, limit) {
     const stmt = this.db.prepare(`
+      WITH latest AS (
+        SELECT MAX(captured_at) AS t FROM video_rank_history WHERE chart = ?
+      )
       SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.is_short = 0
-        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
-      ORDER BY m.view_count DESC
+        v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
+        v.category_id, v.is_short,
+        m.view_count, m.captured_at,
+        vrh.rank
+      FROM video_rank_history vrh
+      INNER JOIN videos v ON v.id = vrh.video_id
+      LEFT JOIN mv_latest_video_stats m ON m.video_id = v.id
+      JOIN latest ON vrh.captured_at = latest.t
+      WHERE vrh.chart = ?
+      ORDER BY vrh.rank ASC
       LIMIT ?
     `);
-
-    const result = await stmt.bind(limit).all();
+    const result = await stmt.bind(chart, chart, limit).all();
     return result.results;
   }
 
@@ -278,130 +282,51 @@ export class DatabaseService {
    * Get category-specific leaderboard
    */
   async getCategoryLeaderboard(categoryId, limit= 10) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.category_id = ? AND v.is_short = 0
-        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(categoryId, limit).all();
-    return result.results;
+    return this._chartLeaderboard(`category:${categoryId}:videos`, limit);
   }
 
   /**
    * Get category-specific leaderboard (includes both videos and shorts)
    */
   async getCategoryLeaderboardCombined(categoryId, limit= 50) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.category_id = ?
-        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(categoryId, limit).all();
-    return result.results;
+    // Union of the two chart-rank leaderboards (videos + shorts). We interleave
+    // by rank so positions reflect each video's actual YouTube chart position
+    // within its respective chart.
+    const [videos, shorts] = await Promise.all([
+      this._chartLeaderboard(`category:${categoryId}:videos`, limit),
+      this._chartLeaderboard(`category:${categoryId}:shorts`, limit),
+    ]);
+    return [...videos, ...shorts]
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
+      .slice(0, limit);
   }
 
   /**
    * Get category-specific shorts leaderboard
    */
   async getCategoryShortsLeaderboard(categoryId, limit= 10) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.category_id = ? AND v.is_short = 1
-        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(categoryId, limit).all();
-    return result.results;
+    return this._chartLeaderboard(`category:${categoryId}:shorts`, limit);
   }
 
   /**
    * Get top shorts from all categories combined
    */
   async getGlobalShortsLeaderboard(limit= 10) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.is_short = 1
-        AND datetime(m.captured_at) >= datetime('now', '-2 hours')
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(limit).all();
-    return result.results;
+    return this._chartLeaderboard('global:shorts', limit);
   }
 
   /**
    * Get shorts leaderboard
    */
   async getShortsLeaderboard(limit= 10) {
+    return this._chartLeaderboard('global:shorts', limit);
+  }
+
+  async _unusedShortsLeaderboard(limit) {
     const stmt = this.db.prepare(`
       SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        m.captured_at
+        v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
+        m.view_count, v.category_id, v.is_short, m.captured_at
       FROM videos v
       INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
       WHERE v.is_short = 1
@@ -802,83 +727,20 @@ export class DatabaseService {
    * Get trending videos for a specific country
    */
   async getCountryTrendingVideos(countryCode, limit = 50) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        v.country_code,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.country_code = ? AND v.is_short = 0
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(countryCode, limit).all();
-    return result.results;
+    return this._chartLeaderboard(`country:${countryCode}:videos`, limit);
   }
 
   /**
    * Get trending shorts for a specific country
    */
   async getCountryTrendingShorts(countryCode, limit = 50) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        v.country_code,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.country_code = ? AND v.is_short = 1
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(countryCode, limit).all();
-    return result.results;
+    return this._chartLeaderboard(`country:${countryCode}:shorts`, limit);
   }
 
   /**
    * Get trending videos for a specific country and category
    */
   async getCountryCategoryVideos(countryCode, categoryId, limit = 50) {
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id,
-        v.title,
-        v.description,
-        v.channel_title,
-        v.thumb_url,
-        v.duration,
-        m.view_count,
-        v.category_id,
-        v.is_short,
-        v.country_code,
-        m.captured_at
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-      WHERE v.country_code = ? AND v.category_id = ? AND v.is_short = 0
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-
-    const result = await stmt.bind(countryCode, categoryId, limit).all();
-    return result.results;
+    return this._chartLeaderboard(`country:${countryCode}:category:${categoryId}:videos`, limit);
   }
 }

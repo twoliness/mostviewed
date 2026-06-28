@@ -1,6 +1,7 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { Play } from 'lucide-react';
-import { formatViewCountShort, getYouTubeUrl } from '@/lib/utils';
+import { formatViewCountShort, videoUrl } from '@/lib/utils';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
 
 const CATEGORY_META = {
@@ -125,87 +126,80 @@ export default function ModernChartRanking({
           const secondaryValue = secondaryMetricKey ? Number(video?.[secondaryMetricKey] || 0) : null;
 
           return (
-            <li
-              key={video.id}
-              className={`group grid ${TABLE_COLS} items-center gap-4 border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-hover-row`}
-            >
-              <div className="flex items-center justify-center">
-                {rank === 1 ? (
-                  <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/12 text-[12px] font-semibold text-brand">
-                    1
-                  </span>
-                ) : (
-                  <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
-                    {rank}
-                  </span>
-                )}
-              </div>
-
-              <a
-                href={getYouTubeUrl(video.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative block"
+            <li key={video.id} className="border-b border-border last:border-b-0">
+              <Link
+                href={videoUrl(video)}
+                prefetch={false}
+                className={`group grid ${TABLE_COLS} items-center gap-4 px-3 py-2.5 transition-colors hover:bg-hover-row focus-visible:bg-hover-row focus-visible:outline-none`}
               >
-                <div
-                  className={`relative overflow-hidden rounded-md ring-1 ring-border ${
-                    isShorts
-                      ? 'h-[72px] w-[42px] mx-auto'
-                      : 'aspect-video w-full'
-                  }`}
-                >
-                  <Image
-                    src={video.thumb_url}
-                    alt={video.title}
-                    fill
-                    sizes={isShorts ? '42px' : '(max-width: 768px) 80px, 84px'}
-                    className="object-cover"
-                  />
-                  <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 font-mono text-[9px] font-medium text-white">
-                    {formatDuration(video.duration)}
-                  </span>
-                  <Play className="pointer-events-none absolute inset-0 m-auto h-4 w-4 fill-white text-white opacity-0 transition-opacity group-hover:opacity-90" />
+                <div className="flex items-center justify-center">
+                  {rank === 1 ? (
+                    <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/12 text-[12px] font-semibold text-brand">
+                      1
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
+                      {rank}
+                    </span>
+                  )}
                 </div>
-              </a>
 
-              <div className="min-w-0">
-                <a
-                  href={getYouTubeUrl(video.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="line-clamp-2 text-[13px] font-medium leading-snug hover:text-brand md:text-[14px]"
-                >
-                  {video.title}
-                </a>
-                <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
-                  {video.channel_title}
+                <div className="relative block">
+                  <div
+                    className={`relative overflow-hidden rounded-md ring-1 ring-border ${
+                      isShorts
+                        ? 'h-[72px] w-[42px] mx-auto'
+                        : 'aspect-video w-full'
+                    }`}
+                  >
+                    <Image
+                      src={video.thumb_url}
+                      alt={video.title}
+                      fill
+                      sizes={isShorts ? '42px' : '(max-width: 768px) 80px, 84px'}
+                      className="object-cover"
+                    />
+                    <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 font-mono text-[9px] font-medium text-white">
+                      {formatDuration(video.duration)}
+                    </span>
+                    <Play className="pointer-events-none absolute inset-0 m-auto h-4 w-4 fill-white text-white opacity-0 transition-opacity group-hover:opacity-90" />
+                  </div>
                 </div>
-                <div className="mt-1.5 md:hidden">
-                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}>
+
+                <div className="min-w-0">
+                  <div className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground group-hover:text-brand md:text-[14px]">
+                    {video.title}
+                  </div>
+                  <div className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                    {video.channel_title}
+                  </div>
+                  <div className="mt-1.5 md:hidden">
+                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hidden md:block">
+                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${badge.className}`}>
                     {badge.label}
                   </span>
                 </div>
-              </div>
 
-              <div className="hidden md:block">
-                <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${badge.className}`}>
-                  {badge.label}
-                </span>
-              </div>
-
-              <div className="text-right">
-                <div className="text-[13px] font-semibold tabular-nums md:text-[14px]">
-                  {formatViewCountShort(viewCount)}
-                </div>
-                {secondaryMetricKey && (
-                  <div className="text-[10px] text-muted-foreground">
-                    {formatViewCountShort(secondaryValue)} {secondaryMetricLabel}
+                <div className="text-right">
+                  <div className="text-[13px] font-semibold tabular-nums md:text-[14px]">
+                    {formatViewCountShort(viewCount)}
                   </div>
-                )}
-                <div className={`mt-0.5 text-[10px] font-medium uppercase tracking-wide ${status.className}`}>
-                  {status.label}
+                  {secondaryMetricKey && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatViewCountShort(secondaryValue)} {secondaryMetricLabel}
+                    </div>
+                  )}
+                  <div className={`mt-0.5 text-[10px] font-medium uppercase tracking-wide ${status.className}`}>
+                    {status.label}
+                  </div>
                 </div>
-              </div>
+              </Link>
             </li>
           );
         })}

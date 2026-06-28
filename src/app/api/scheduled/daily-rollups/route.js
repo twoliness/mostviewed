@@ -9,6 +9,68 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 // + 5 countries × N days. Fast even on 200K videos because video_summary is one
 // row per video.
 
+// Daily fold: per-video aggregate of yesterday's video_stats into video_daily_stats.
+// Single INSERT...SELECT per day keeps data server-side. ~3k distinct videos/day in
+// practice, so even the full-day GROUP BY runs in well under the D1 query budget.
+async function foldDailyStats(db, day) {
+  const dayStart = `${day}T00:00:00.000Z`;
+  const dayEnd = `${day}T23:59:59.999Z`;
+  // peak_velocity = MAX views/hour between consecutive same-day snapshots,
+  // matching computeVelocity() in src/lib/rollups.js: ≥10-min apart, non-negative dv.
+  const res = await db.prepare(`
+    WITH base AS (
+      SELECT
+        video_id,
+        MIN(view_count) AS views_start,
+        MAX(view_count) AS views_end,
+        MAX(view_count) - MIN(view_count) AS views_delta,
+        MAX(like_count) - MIN(like_count) AS likes_delta,
+        MAX(comment_count) - MIN(comment_count) AS comments_delta,
+        COUNT(*) AS snapshot_count,
+        CASE WHEN MAX(view_count) > 0
+          THEN (CAST(COALESCE(MAX(like_count),0) AS REAL)
+              + CAST(COALESCE(MAX(comment_count),0) AS REAL))
+              / MAX(view_count)
+          ELSE NULL END AS engagement_rate
+      FROM video_stats
+      WHERE captured_at >= ?1 AND captured_at <= ?2
+      GROUP BY video_id
+    ),
+    deltas AS (
+      SELECT
+        video_id,
+        view_count - LAG(view_count) OVER w AS dv,
+        (julianday(captured_at) - julianday(LAG(captured_at) OVER w)) * 24.0 AS dt_hours
+      FROM video_stats
+      WHERE captured_at >= ?1 AND captured_at <= ?2
+      WINDOW w AS (PARTITION BY video_id ORDER BY captured_at, id)
+    ),
+    peak AS (
+      SELECT video_id,
+             MAX(CASE WHEN dt_hours >= (10.0/60.0) AND dv >= 0 THEN dv * 1.0 / dt_hours END) AS peak_velocity
+      FROM deltas
+      GROUP BY video_id
+    )
+    INSERT INTO video_daily_stats
+      (video_id, day, views_start, views_end, views_delta,
+       likes_delta, comments_delta, snapshot_count, engagement_rate, peak_velocity)
+    SELECT base.video_id, ?3, base.views_start, base.views_end, base.views_delta,
+           base.likes_delta, base.comments_delta, base.snapshot_count, base.engagement_rate,
+           peak.peak_velocity
+    FROM base LEFT JOIN peak USING (video_id)
+    ON CONFLICT(video_id, day) DO UPDATE SET
+      views_start = excluded.views_start,
+      views_end = excluded.views_end,
+      views_delta = excluded.views_delta,
+      likes_delta = excluded.likes_delta,
+      comments_delta = excluded.comments_delta,
+      snapshot_count = excluded.snapshot_count,
+      engagement_rate = excluded.engagement_rate,
+      peak_velocity = excluded.peak_velocity
+  `).bind(dayStart, dayEnd, day).run();
+  return res?.meta?.changes ?? 0;
+}
+
 const CHART_PREFIX_BY_COUNTRY = {
   US: 'country:US',
   GB: 'country:GB',
@@ -152,16 +214,20 @@ async function rebuildCountryDay(db, country, day) {
 
 async function run(env) {
   const db = env.DB;
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  // Cron runs at 03:25 UTC — yesterday's day is fully captured.
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const creatorRows = await rebuildCreatorSummary(db);
+  const dailyStatsRows = await foldDailyStats(db, yesterday);
 
   const countryResults = [];
   for (const country of Object.keys(CHART_PREFIX_BY_COUNTRY)) {
     countryResults.push(await rebuildCountryDay(db, country, today));
   }
 
-  return { creatorRows, today, countries: countryResults };
+  return { creatorRows, dailyStatsRows, dailyStatsDay: yesterday, today, countries: countryResults };
 }
 
 export async function POST() {

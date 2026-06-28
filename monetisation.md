@@ -1,6 +1,6 @@
 # mostviewed.today — Monetisation Strategy
 
-> Last updated: June 2026  
+> Last updated: June 28, 2026  
 > Status: Pre-revenue, building toward first dollar
 
 ---
@@ -27,6 +27,8 @@ A proprietary video impact index measuring a video's trending influence — not 
 The formula can be replicated. The **data cannot**. 9 months of 30-minute rank snapshots on 204k videos is a multi-year head start. Competitors would need to start collecting today and wait years to catch up.
 
 ### Formula components
+
+**Platform performance layer (v1 — live now):**
 | Signal | What it measures |
 |---|---|
 | Peak position score | Best rank achieved (100 / peak_rank) |
@@ -34,10 +36,17 @@ The formula can be replicated. The **data cannot**. 9 months of 30-minute rank s
 | Velocity score | Peak views/hour |
 | Engagement score | Day 1 like/view ratio vs current |
 
-Future additions:
-- YouTube comment sentiment (via Claude API)
-- Reddit mentions (free API)
-- Cross-platform social signal
+**Cultural penetration layer (v2 — roadmap):**
+| Signal | What it measures | Source |
+|---|---|---|
+| Comment sentiment | Whether people felt something — positive/negative/neutral | YouTube API + Claude |
+| Reddit mentions | Discussion volume and tone outside YouTube | Reddit free API |
+| Social noise | Cross-platform conversation signal | X API (later) |
+
+The cultural penetration layer is what separates MVT Score from every other metric. A video can have 200M views and zero social conversation — algorithmic reach, not cultural impact. A video with 80M views but exploding Reddit threads and positive comment sentiment is worth 10x the sponsorship premium to a brand.
+
+**The core insight:**
+> MVT Score is the first metric that tells you not just how many people watched — but how many people cared.
 
 ### Naming
 - **Full name:** Most Viewed Today Score
@@ -92,7 +101,21 @@ Now. Lead with SEO ranking, not subscriber count.
 
 ---
 
-### 2. Pro Subscription — $9/mo
+### 2. Pro Subscription
+
+**Pricing decision: $9 is underpriced. Launch at $19/mo.**
+
+VidIQ charges $16–415/mo for creator-only data. TubeBuddy charges $9–49/mo. You offer cross-creator, cross-video trending intelligence with 9 months of historical rank data nobody else has. $9 undervalues that.
+
+**Tiering:**
+| Tier | Price | Who it's for |
+|---|---|---|
+| Free | $0 | Basic leaderboard, SEO, newsletter |
+| Creator | $19/mo | Solo creators, researchers, journalists |
+| Pro | $49/mo | Agencies, content strategists, MCNs |
+| Brand | $199/mo | Brand teams, talent managers, sponsors |
+
+Start at $19/mo to get first 10 paying users fast. Raise to $49 once testimonials exist. $199 Brand tier when agencies find you organically.
 
 **Free tier (indexed by Google, drives SEO):**
 - Current rank
@@ -101,13 +124,26 @@ Now. Lead with SEO ranking, not subscriber count.
 - Rank timeline chart (sparkline)
 - Basic summary — peak rank, days on chart, total days at #1
 
-**Pro tier ($9/mo):**
+**Creator $19/mo:**
 - Full rank timeline breakdown (time at each position — the moat)
 - View velocity chart (views/hour over time)
 - Engagement rate trend (Day 1 → Week 1 → now)
+- Interactive views + rank comparison chart
 - Pattern of the Week full archive
-- Creator intelligence pages
 - Pattern alerts
+
+**Pro $49/mo (everything in Creator plus):**
+- Creator intelligence pages — full historical performance
+- Format breakdown analysis per creator
+- Compare any two videos side by side
+- MVT Score breakdown per video
+- Comment sentiment data (v2)
+
+**Brand $199/mo (everything in Pro plus):**
+- Reddit + social noise signals (v2)
+- Full MVT Score with cultural penetration layer
+- Exportable MVT Score reports for internal pitching
+- Priority data access
 
 **Implementation:**
 - Blur/lock overlay on Pro sections (SimilarWeb model)
@@ -228,7 +264,7 @@ Daily Viral Brief newsletter (free, nurture)
     ↓
 Monthly Deep Dive Report ($49)
     ↓
-Pro Subscription ($9/mo)
+Creator $19/mo → Pro $49/mo → Brand $199/mo
 ```
 
 **Growth target:** 200–500 subscribers before pitching newsletter sponsors  
@@ -252,7 +288,8 @@ Pro Subscription ($9/mo)
 
 **Monetisation:**
 - Free: trending badge (is it in top 5,300 or not)
-- Pro $9/mo: full rank timeline, velocity, creator dashboard
+- Creator $19/mo: full rank timeline, velocity, creator dashboard
+- Pro $49/mo: MVT Score overlay, comparison mode
 
 **Important constraint:**
 Extension calls your own API, not YouTube's — stays within YouTube ToS. Coverage limited to videos that have trended in your DB. Position as a trending intelligence tool, not a universal stats tool.
@@ -271,20 +308,68 @@ Extension calls your own API, not YouTube's — stays within YouTube ToS. Covera
 
 ---
 
+## ROI by Buyer
+
+The tool's value isn't the same for every buyer. Here's how to frame ROI per segment.
+
+### Content Strategist / Agency
+They're paid to answer: "what should we make next?" Trend research that took 3 hours takes 15 minutes.
+> "Save 10+ hours of trend research per month. At $100/hr that's $1,000 in recovered billable time — for $49/mo."
+
+### YouTube Creator
+Every video is a bet. Knowing that survival + cash prize videos hold #1 for 18+ days vs 4 days for challenge videos changes the format decision before production budget is spent.
+> "One better-performing video pays for a year of Pro. If the right format gets you 50K more views, what's that worth in ad revenue or sponsorships?"
+
+### Talent Manager / MCN
+They need to justify roster decisions and pitch sponsors. MVT Score gives them a number that proves a creator's content holds attention, not just gets clicks.
+> "Close one additional brand deal using MVT Score data. Average YouTube sponsorship for a mid-tier creator: $5,000–20,000. Tool cost: $199/mo."
+
+### Brand / Marketing Team
+They're allocating sponsorship budget and need defensible data internally. Views are table stakes. MVT Score with social noise tells them which creator's content actually penetrated culture.
+> "Allocate $50,000 sponsorship budget with confidence. One wrong creator pick costs more than a year of the tool."
+
+### The single clearest ROI statement across all buyers
+> *mostviewed.today shows you what's actually working on YouTube — not just what's popular right now, but what held attention longest, grew fastest, and followed a repeatable pattern. Make better content decisions, faster, with data nobody else publishes.*
+
+---
+
+## MVT Score — The Brand Deal Signal
+
+The MVT Score ROI is clearest in the brand sponsorship context.
+
+Every tool shows the same surface metrics — views, likes, subscribers. Brands already have that. What they can't see is whether a video **penetrated culture** — are real people talking about it outside YouTube?
+
+**Signal vs noise:**
+- 200M views, zero social conversation = algorithmic reach, passive watching, forgotten
+- 80M views, exploding Reddit threads, positive comment sentiment = cultural moment, embedded in the zeitgeist
+
+For a brand, the second video is worth 10x the sponsorship premium of the first.
+
+**What MVT Score proves in a brand pitch:**
+> *"Creator A's last video had MVT Score 847 — top 3% of Entertainment. It held #1 for 12 days, comment sentiment was 89% positive, and Reddit discussion volume was 3x the category average. Creator B's last video peaked for 6 hours and has no social conversation."*
+
+That's the data that closes a $50,000 sponsorship decision internally.
+
+---
+
 ## Priority Order
 
 | Priority | Task | Revenue impact |
 |---|---|---|
 | 1 | Send sponsor pitch emails | Immediate |
 | 2 | Ship video detail pages (free tier) | SEO — 204k pages |
-| 3 | Add Pro blur/lock layer + Stripe | First subscription revenue |
+| 3 | Add Pro blur/lock layer + Stripe at $19/mo | First subscription revenue |
 | 4 | Write June 2026 report manually | Validate $49 report model |
 | 5 | Publish Pattern of the Week page | SEO + newsletter growth |
 | 6 | Run rank history reconstruction job | Unlocks the full moat |
-| 7 | Add MVT Score to video pages | Metric credibility |
+| 7 | Add MVT Score v1 to video pages | Metric credibility |
 | 8 | Publish MVT Score methodology page | Industry legitimacy |
-| 9 | File MVT Score trademark at IPOPHL | Brand protection |
-| 10 | Build Chrome extension | Pro subscription growth |
+| 9 | Add YouTube comment sentiment via Claude API | MVT Score v2 — cultural layer |
+| 10 | Add Reddit mentions signal | MVT Score v2 — social noise |
+| 11 | Launch $49/mo Pro tier with full MVT Score | Agency / MCN revenue |
+| 12 | File MVT Score trademark at IPOPHL | Brand protection |
+| 13 | Launch $199/mo Brand tier with social noise data | Brand deal revenue |
+| 14 | Build Chrome extension | Pro subscription growth |
 
 ---
 
@@ -292,7 +377,7 @@ Extension calls your own API, not YouTube's — stays within YouTube ToS. Covera
 
 For sponsor pitches — attach `mostviewed-media-kit.html`
 
-- 4,800 pageviews / 3,700 visitors (30 days)
+- 5,000 pageviews / 3,700 visitors (30 days)
 - #1 on Bing, DuckDuckGo, Yahoo
 - 32% US · 19% India · 17% China
 - 57% desktop (research intent)

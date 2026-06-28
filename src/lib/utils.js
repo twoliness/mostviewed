@@ -69,6 +69,38 @@ export function getYouTubeUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+// YouTube video IDs are exactly 11 characters from [A-Za-z0-9_-].
+const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+
+export function slugify(text) {
+  if (!text) return '';
+  return String(text)
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+export function videoSlug(video) {
+  if (!video || !video.id) return '';
+  const title = slugify(video.title);
+  return title ? `${title}-${video.id}` : video.id;
+}
+
+// Parse a /video/[slug] param. ID is always the last 11 chars (YouTube IDs
+// can include `-` and `_` so splitting by `-` is unsafe).
+export function videoIdFromSlug(slug) {
+  if (!slug || typeof slug !== 'string') return null;
+  const tail = slug.slice(-11);
+  return VIDEO_ID_RE.test(tail) ? tail : null;
+}
+
+export function videoUrl(video) {
+  return `/video/${videoSlug(video)}`;
+}
+
 /**
  * Generate YouTube channel URL
  */
