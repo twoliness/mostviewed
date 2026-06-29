@@ -67,7 +67,7 @@ export default function SeoFooter({ context = 'global' }) {
           <div className="md:w-[200px] md:shrink-0">
             <div className="mb-2 flex items-center gap-1.5 text-[14px] font-medium tracking-tight">
               <img src="/mvt-icon.png" alt="" className="h-5 w-5 rounded-[5px] object-contain" />
-              <span>mostviewed<span className="text-brand">.today</span></span>
+              <span className="font-semibold">mostviewed<span className="text-gray-400">.today</span></span>
             </div>
             <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
               Track YouTube&apos;s most viewed videos with live-ranked leaderboards across

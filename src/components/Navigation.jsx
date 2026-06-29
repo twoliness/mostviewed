@@ -60,7 +60,7 @@ export default function Navigation() {
       <div className="mx-auto flex h-12 max-w-[1240px] items-center px-6">
         <Link href="/" className="flex items-center gap-1.5 text-[15px] font-medium tracking-tight">
           <img src="/mvt-icon.png" alt="" className="h-5 w-5 rounded-[5px] object-contain" />
-          <span>mostviewed<span className="text-brand">.today</span></span>
+          <span className="font-semibold">mostviewed<span className="text-gray-400">.today</span></span>
         </Link>
 
         <div className="ml-auto flex items-center gap-2" ref={wrapperRef}>
