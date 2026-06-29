@@ -13,7 +13,7 @@ function utmUrl(path, content) {
   return `${SITE_URL}${path}?utm_source=newsletter&utm_medium=email&utm_campaign=daily-brief&utm_content=${content}`;
 }
 
-function buildPrompt({ topVideos, topShorts, topCreators, categorySummary, countrySummary, date }) {
+function buildPrompt({ topVideos, topShorts, topCreators, categorySummary, countrySummary, breakouts, date }) {
   const topVideosJson = JSON.stringify(
     topVideos.map((v) => ({
       chart_rank: v.rank,
@@ -77,6 +77,29 @@ function buildPrompt({ topVideos, topShorts, topCreators, categorySummary, count
     2
   );
 
+  const breakoutsJson = breakouts && breakouts.length
+    ? JSON.stringify(
+        breakouts.map((b) => ({
+          id: b.video_id,
+          title: b.title,
+          channel: b.channel_title,
+          is_short: b.is_short === 1,
+          velocity_score: Math.round(b.score * 10) / 10,
+          velocity_views_per_hour: Math.round(b.velocity_at_detection),
+          age_hours_when_detected: Math.round(b.age_hours_at_detection * 10) / 10,
+          current_chart_rank: b.current_rank,
+          current_chart: b.current_chart,
+          peak_chart_rank: b.peak_rank,
+          total_views: b.current_views,
+          total_views_formatted: formatViewCountShort(b.current_views),
+          url: `https://youtube.com/watch?v=${b.video_id}`,
+          detail_url: utmUrl(`/video/${b.video_id}`, 'breakout'),
+        })),
+        null,
+        2
+      )
+    : null;
+
   const leaderboardUrl = utmUrl('', 'leaderboard');
 
   return `You are the editorial analyst for MostViewed.today, a daily YouTube trend brief.
@@ -105,8 +128,8 @@ The newsletter should feel broad, not repetitive.
 Do not use the same creator/channel for more than TWO sections unless that creator clearly dominates the entire leaderboard.
 
 Preferred variety:
-* Today's breakout: choose the strongest non-Short long-form video with a clear signal.
-* Fast-rising Short: choose the strongest Short.
+* Today's breakout: if "Detected breakout candidates" are provided, use the highest-scoring non-Short candidate (lowest is_short = false). These are algorithmically detected as climbing unusually fast — mention the velocity signal (e.g., "climbing at 2.1M views/hour, 15× faster than typical videos its age"). If no non-Short breakout exists, choose the strongest non-Short long-form video from the chart.
+* Fast-rising Short: if breakout candidates include a Short (is_short = true), prefer it. Otherwise choose the strongest Short from the chart.
 * Creator to watch: choose the creator with repeated appearances, unusually high total tracked views, or a clear repeatable format.
 * Pattern of the day: choose a repeatable pattern visible across at least 2–3 videos.
 
@@ -131,7 +154,11 @@ INPUT DATA:
 Date: ${date}
 Leaderboard URL: ${leaderboardUrl}
 
-Top long-form videos:
+${breakoutsJson ? `Detected breakout candidates (velocity-ranked — these are videos climbing UNUSUALLY fast for their age):
+velocity_score = views/hour ÷ p80 baseline for today's chart. Score ≥ 2.5 means the video is in the top tier.
+${breakoutsJson}
+
+` : ''}Top long-form videos (chart-ranked):
 ${topVideosJson}
 
 Top Shorts:
@@ -315,7 +342,7 @@ MostViewed.today · Find what's viral first. · <a href="{{UNSUBSCRIBE_LINK}}" s
 </html>`;
 }
 
-export async function generateDailyBrief({ topVideos, topShorts, topCreators, categorySummary = [], countrySummary = [] }) {
+export async function generateDailyBrief({ topVideos, topShorts, topCreators, categorySummary = [], countrySummary = [], breakouts = [] }) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const date = new Date().toLocaleDateString('en-US', {
@@ -331,7 +358,7 @@ export async function generateDailyBrief({ topVideos, topShorts, topCreators, ca
     messages: [
       {
         role: 'user',
-        content: buildPrompt({ topVideos, topShorts, topCreators, categorySummary, countrySummary, date }),
+        content: buildPrompt({ topVideos, topShorts, topCreators, categorySummary, countrySummary, breakouts, date }),
       },
     ],
   });

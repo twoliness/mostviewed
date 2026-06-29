@@ -220,15 +220,6 @@ export default async function VideoDetailPage({ params }) {
 
   return (
     <div className="bg-secondary/40 min-h-screen text-foreground">
-      {/* Breadcrumb */}
-      <nav className="mx-auto max-w-[680px] px-4 pt-3 text-[12px] text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">📈 Leaderboards</Link>
-        <span className="mx-1.5 text-border">/</span>
-        <Link href={video.is_short ? '/shorts' : '/global'} className="hover:text-foreground">{video.is_short ? 'Shorts' : 'Videos'}</Link>
-        <span className="mx-1.5 text-border">/</span>
-        <span className="truncate text-muted-foreground">{video.title}</span>
-      </nav>
-
       <main className="mx-auto max-w-[680px] px-4 pb-20 pt-3">
         {/* Hero card with YouTube embed */}
         <section className="mb-3 overflow-hidden rounded-xl border border-border bg-card">

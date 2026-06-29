@@ -16,12 +16,14 @@ export default {
       // minute (e.g. "0,30 * * * *" and "0 14 * * *" both fire at 14:00), each
       // invocation would match the same branch and the job would run twice.
       const cronRoutes = {
-        '0 14 * * *': '/api/newsletter/send-daily',
+        '0 14 * * *':    '/api/newsletter/send-daily',
         '10 */12 * * *': '/api/scheduled',
-        '5 * * * *': '/api/scheduled/countries',
-        '0,30 * * * *': '/api/scheduled/videos',
+        '5 * * * *':     '/api/scheduled/countries',
+        '0,30 * * * *':  '/api/scheduled/videos',
         '15,45 * * * *': '/api/scheduled/shorts',
-        '25 3 * * *': '/api/scheduled/daily-rollups',
+        '25 3 * * *':    '/api/scheduled/daily-rollups',
+        '2,32 * * * *':  '/api/scheduled/detect-breakouts',
+        '17,47 * * * *': '/api/scheduled/refresh-breakouts',
       };
 
       const apiEndpoint = cronRoutes[event.cron];

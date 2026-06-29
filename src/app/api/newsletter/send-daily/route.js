@@ -7,7 +7,7 @@ async function fetchLeaderboardData(db) {
   // videos (last_seen within 2h). Previously used mv_latest_video_stats ORDER BY
   // view_count DESC which returned the same high-lifetime-view videos every day
   // regardless of what's actually trending.
-  const [videosResult, shortsResult, creatorsResult, categoryResult, countryResult] =
+  const [videosResult, shortsResult, creatorsResult, categoryResult, countryResult, breakoutsResult] =
     await Promise.all([
       // Top 10 on the global:videos chart right now, in chart order
       db
@@ -94,6 +94,22 @@ async function fetchLeaderboardData(db) {
            LIMIT 5`
         )
         .all(),
+      // Top confirmed breakout candidates for the "Today's Breakout" section
+      db
+        .prepare(
+          `SELECT bc.video_id, bc.score, bc.age_hours_at_detection, bc.velocity_at_detection,
+                  bc.status, bc.detected_at,
+                  v.title, v.channel_title, v.duration, v.is_short, v.published_at,
+                  vs.current_rank, vs.current_chart, vs.current_views, vs.peak_rank
+           FROM breakout_candidates bc
+           JOIN videos v ON v.id = bc.video_id
+           LEFT JOIN video_summary vs ON vs.video_id = bc.video_id
+           WHERE bc.status IN ('confirmed', 'candidate')
+             AND vs.last_seen >= datetime('now', '-2 hours')
+           ORDER BY bc.score DESC
+           LIMIT 5`
+        )
+        .all(),
     ]);
 
   return {
@@ -102,6 +118,7 @@ async function fetchLeaderboardData(db) {
     topCreators: creatorsResult.results || [],
     categorySummary: categoryResult.results || [],
     countrySummary: countryResult.results || [],
+    breakouts: breakoutsResult.results || [],
   };
 }
 
@@ -135,14 +152,14 @@ export async function POST(request) {
 
   if (!brief) {
     console.log('[send-daily] Generating brief for', today);
-    const { topVideos, topShorts, topCreators, categorySummary, countrySummary } =
+    const { topVideos, topShorts, topCreators, categorySummary, countrySummary, breakouts } =
       await fetchLeaderboardData(db);
 
     if (topVideos.length === 0) {
       return Response.json({ error: 'No video data available yet' }, { status: 422 });
     }
 
-    brief = await generateDailyBrief({ topVideos, topShorts, topCreators, categorySummary, countrySummary });
+    brief = await generateDailyBrief({ topVideos, topShorts, topCreators, categorySummary, countrySummary, breakouts });
 
     try {
       await env.VIDTRENDS_CACHE.put(kvKey, JSON.stringify(brief), {

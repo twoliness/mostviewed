@@ -38,7 +38,9 @@
 			"5 * * * *",       // Trending/country collection at :05 every hour
 			"10 */12 * * *",   // Creator collection at :10 every 12 hours
 			"0 14 * * *",      // Daily newsletter send at 2:00 PM UTC (10 AM ET / 7 AM PT)
-			"25 3 * * *"       // Daily creator + country rollup rebuild at 03:25 UTC
+			"25 3 * * *",      // Daily creator + country rollup rebuild at 03:25 UTC
+			"2,32 * * * *",    // Breakout detection at :02 and :32 (2 min after video collection)
+			"17,47 * * * *"    // Breakout Layer 2 refresh at :17 and :47 (1 YT API unit/run)
 		]
 	},
 	"send_email": [
