@@ -94,8 +94,8 @@ export default function RootLayout({ children }) {
         <link rel="canonical" href="https://mostviewed.today" />
         
         {/* Favicon and Icons */}
-        <link rel="icon" href="/mvt-icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/mvt-icon.png" />
+        <link rel="icon" href="/mvt-favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/mvt-favicon.png" />
         <link rel="manifest" href="/site.webmanifest" />
         
         {/* Theme Color */}
