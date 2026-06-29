@@ -2,9 +2,7 @@ export default function ChartHero({ title, subtitle }) {
   return (
     <div className="mx-auto max-w-[1240px] px-6 pt-10 pb-6">
       <div className="mb-3 flex items-center gap-2 text-[12px] text-muted-foreground">
-        <span className="grid h-5 w-5 place-items-center rounded bg-secondary text-[12px]">
-          📈
-        </span>
+        <img src="/mvt-icon.png" alt="" className="h-5 w-5 rounded object-cover" />
         <span>Leaderboards</span>
         <span className="opacity-50">/</span>
         <span>Daily</span>

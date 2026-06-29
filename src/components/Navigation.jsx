@@ -59,9 +59,7 @@ export default function Navigation() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-12 max-w-[1240px] items-center px-6">
         <Link href="/" className="flex items-center gap-1.5 text-[15px] font-medium tracking-tight">
-          <span className="grid h-5 w-5 place-items-center rounded-[5px] bg-foreground text-[11px] font-semibold text-background">
-            m
-          </span>
+          <img src="/mvt-icon.png" alt="" className="h-5 w-5 rounded-[5px] object-cover" />
           <span>mostviewed<span className="text-brand">.today</span></span>
         </Link>
 
