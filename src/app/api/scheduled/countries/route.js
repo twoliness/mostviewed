@@ -38,9 +38,9 @@ export async function POST(request) {
       console.log(`[Countries API] Collecting data for ${country.name} (${country.code})`);
 
       try {
-        // Collect global trending videos for this country (50 videos)
+        // Collect global trending videos for this country (top 100)
         console.log(`[Countries API] Fetching trending videos for ${country.name}...`);
-        const globalVideos = await youtube.getMostPopularVideosByRegion(country.code, 50);
+        const globalVideos = await youtube.getMostPopularVideosByRegion(country.code, 100);
 
         const globalData = globalVideos.map(video => {
           const transformed = youtube.transformToDbFormat(video);
@@ -60,9 +60,9 @@ export async function POST(request) {
           });
         }
 
-        // Collect global shorts for this country (50 shorts)
+        // Collect global shorts for this country (top 100)
         console.log(`[Countries API] Fetching trending shorts for ${country.name}...`);
-        const globalShorts = await youtube.getMostPopularShortsByRegion(country.code, 50);
+        const globalShorts = await youtube.getMostPopularShortsByRegion(country.code, 100);
 
         const shortsData = globalShorts.map(video => {
           const transformed = youtube.transformToDbFormat(video);

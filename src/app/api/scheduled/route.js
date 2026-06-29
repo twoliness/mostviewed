@@ -112,8 +112,10 @@ async function triggerCreatorCollection(env) {
   // track their view trajectory for creator history pages.
   let offChartRefreshed = 0;
   try {
+    // Fetch old stats alongside IDs so we can compute deltas for video_daily_stats
+    // without touching video_stats (which would trigger mv_latest contamination).
     const offChartQuery = await env.DB.prepare(`
-      SELECT v.id
+      SELECT v.id, vs.current_views, vs.current_likes, vs.current_comments
       FROM videos v
       INNER JOIN video_summary vs ON vs.video_id = v.id
       WHERE vs.last_seen < datetime('now', '-2 hours')
@@ -122,16 +124,18 @@ async function triggerCreatorCollection(env) {
       LIMIT 250
     `).all();
 
-    const offChartIds = (offChartQuery.results || []).map(r => r.id);
+    const offChartRows = offChartQuery.results || [];
+    const offChartIds = offChartRows.map(r => r.id);
     if (offChartIds.length > 0) {
       console.log(`[Scheduled] Refreshing view counts for ${offChartIds.length} off-chart videos`);
       const freshStats = await youtube.getVideoStatsBatch(offChartIds);
 
-      // Only update video_summary — do NOT insert into video_stats for off-chart
-      // videos. The trigger trg_mv_latest_video_stats_upsert fires on every
-      // video_stats INSERT and upserts mv_latest_video_stats, which would make
-      // these videos reappear in leaderboards with their lifetime view counts.
+      const oldById = {};
+      for (const r of offChartRows) oldById[r.id] = r;
+
       const capturedAt = database.getCaptureBucketTimestamp();
+      const today = capturedAt.slice(0, 10); // YYYY-MM-DD
+
       const summaryStmts = freshStats.map(s =>
         env.DB.prepare(
           `UPDATE video_summary
@@ -139,7 +143,32 @@ async function triggerCreatorCollection(env) {
            WHERE video_id = ?`
         ).bind(s.viewCount, s.likeCount, s.commentCount, capturedAt, s.id)
       );
-      await env.DB.batch(summaryStmts);
+
+      // Write directly to video_daily_stats (bypasses video_stats and its trigger).
+      // ON CONFLICT keeps the original views_start from the first run of the day,
+      // updates views_end to the latest value, and recomputes views_delta.
+      const dailyStmts = freshStats.map(s => {
+        const old = oldById[s.id] || {};
+        const viewsStart = old.current_views ?? s.viewCount;
+        const viewsDelta = Math.max(0, s.viewCount - viewsStart);
+        const likesDelta = (s.likeCount && old.current_likes != null)
+          ? Math.max(0, s.likeCount - old.current_likes) : null;
+        const commentsDelta = (s.commentCount && old.current_comments != null)
+          ? Math.max(0, s.commentCount - old.current_comments) : null;
+        return env.DB.prepare(`
+          INSERT INTO video_daily_stats
+            (video_id, day, views_start, views_end, views_delta, likes_delta, comments_delta, snapshot_count)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+          ON CONFLICT(video_id, day) DO UPDATE SET
+            views_end      = excluded.views_end,
+            views_delta    = MAX(0, excluded.views_end - video_daily_stats.views_start),
+            likes_delta    = COALESCE(excluded.likes_delta, video_daily_stats.likes_delta),
+            comments_delta = COALESCE(excluded.comments_delta, video_daily_stats.comments_delta),
+            snapshot_count = video_daily_stats.snapshot_count + 1
+        `).bind(s.id, today, viewsStart, s.viewCount, viewsDelta, likesDelta, commentsDelta);
+      });
+
+      await env.DB.batch([...summaryStmts, ...dailyStmts]);
       offChartRefreshed = freshStats.length;
       console.log(`[Scheduled] Off-chart view refresh done: ${offChartRefreshed} videos updated`);
     }

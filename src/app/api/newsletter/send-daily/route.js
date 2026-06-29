@@ -109,8 +109,17 @@ export async function POST(request) {
   const { env } = await getCloudflareContext({ async: true });
   const db = env.DB;
 
+  const url = new URL(request.url);
+  const bust = url.searchParams.get('bust') === 'true';
+
   const today = new Date().toISOString().slice(0, 10);
   const kvKey = `newsletter:brief:${today}`;
+
+  // ?bust=true clears today's cached brief so it regenerates with fresh data
+  if (bust) {
+    await env.VIDTRENDS_CACHE.delete(kvKey).catch(() => {});
+    console.log('[send-daily] Cache busted for', today);
+  }
 
   // Get or generate today's brief (generate once, share across all sends)
   let brief;
