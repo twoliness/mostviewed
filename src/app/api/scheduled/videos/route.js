@@ -25,7 +25,7 @@ async function triggerVideosCollection(env) {
   // 1. Collect global trending videos (excluding shorts)
   console.log('[Videos Collection] Collecting global trending videos...');
   try {
-    const globalVideos = await youtube.getMostPopularVideos(100);
+    const globalVideos = await youtube.getMostPopularVideos(200);
     const globalData = globalVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
 
     if (globalData.length > 0) {
@@ -50,7 +50,7 @@ async function triggerVideosCollection(env) {
     try {
       console.log(`[Videos Collection] Processing category ${categoryId} videos...`);
 
-      const trendingVideos = await youtube.getMostPopularVideosByCategory(categoryId, 100);
+      const trendingVideos = await youtube.getMostPopularVideosByCategory(categoryId, 200);
 
       if (trendingVideos.length > 0) {
         const trendingData = trendingVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);

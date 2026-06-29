@@ -107,10 +107,50 @@ async function triggerCreatorCollection(env) {
   // Batch upsert creators to database
   await database.batchUpsertCreators(creatorsData);
 
+  // Refresh view counts for off-chart videos published in the last 90 days.
+  // These videos are no longer in the trending top 200 but we still want to
+  // track their view trajectory for creator history pages.
+  let offChartRefreshed = 0;
+  try {
+    const offChartQuery = await env.DB.prepare(`
+      SELECT v.id
+      FROM videos v
+      INNER JOIN video_summary vs ON vs.video_id = v.id
+      WHERE vs.last_seen < datetime('now', '-2 hours')
+        AND v.published_at > datetime('now', '-90 days')
+      ORDER BY vs.current_views DESC
+      LIMIT 250
+    `).all();
+
+    const offChartIds = (offChartQuery.results || []).map(r => r.id);
+    if (offChartIds.length > 0) {
+      console.log(`[Scheduled] Refreshing view counts for ${offChartIds.length} off-chart videos`);
+      const freshStats = await youtube.getVideoStatsBatch(offChartIds);
+
+      // Only update video_summary — do NOT insert into video_stats for off-chart
+      // videos. The trigger trg_mv_latest_video_stats_upsert fires on every
+      // video_stats INSERT and upserts mv_latest_video_stats, which would make
+      // these videos reappear in leaderboards with their lifetime view counts.
+      const capturedAt = database.getCaptureBucketTimestamp();
+      const summaryStmts = freshStats.map(s =>
+        env.DB.prepare(
+          `UPDATE video_summary
+           SET current_views = ?, current_likes = ?, current_comments = ?, updated_at = ?
+           WHERE video_id = ?`
+        ).bind(s.viewCount, s.likeCount, s.commentCount, capturedAt, s.id)
+      );
+      await env.DB.batch(summaryStmts);
+      offChartRefreshed = freshStats.length;
+      console.log(`[Scheduled] Off-chart view refresh done: ${offChartRefreshed} videos updated`);
+    }
+  } catch (err) {
+    console.error('[Scheduled] Off-chart view refresh failed (non-fatal):', err);
+  }
+
   // Clear caches after successful creator collection
   await clearAllCaches(env);
 
-  return { processedChannels: creatorsData.length };
+  return { processedChannels: creatorsData.length, offChartRefreshed };
 }
 
 // Function to clear all API caches

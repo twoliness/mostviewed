@@ -403,6 +403,39 @@ export class YouTubeApiService {
   }
 
   /**
+   * Fetch current statistics (views/likes/comments) for arbitrary video IDs.
+   * Used to refresh off-chart creator videos between trending collections.
+   * Returns array of { id, viewCount, likeCount, commentCount }.
+   */
+  async getVideoStatsBatch(videoIds) {
+    if (!videoIds || videoIds.length === 0) return [];
+    const results = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      const url = new URL(`${this.baseUrl}/videos`);
+      url.searchParams.set('part', 'statistics');
+      url.searchParams.set('id', batch.join(','));
+      url.searchParams.set('key', this.apiKey);
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        console.error(`[YouTube API] getVideoStatsBatch error ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      for (const item of data.items || []) {
+        results.push({
+          id: item.id,
+          viewCount: parseInt(item.statistics?.viewCount ?? '0', 10) || 0,
+          likeCount: parseInt(item.statistics?.likeCount ?? '0', 10) || 0,
+          commentCount: parseInt(item.statistics?.commentCount ?? '0', 10) || 0,
+        });
+      }
+      if (i + 50 < videoIds.length) await new Promise(r => setTimeout(r, 100));
+    }
+    return results;
+  }
+
+  /**
    * Fetch channel details for multiple channels
    */
   async getChannelDetails(channelIds) {

@@ -27,16 +27,17 @@ function toMs(iso) {
   return Number.isFinite(t) ? t : null;
 }
 
-// Bucket captures into one row per UTC day, keeping the best (lowest) rank
-// per series. Sub-day cadence (we capture every 30min) would otherwise crowd
-// the X-axis with repeated date labels.
+// Bucket captures into one row per UTC day, keeping the latest rank per
+// series. Series is sorted ascending by captured_at, so each iteration
+// overwrites the previous value, leaving the last-seen rank for that day.
+// This keeps the chart endpoint aligned with the "Current Rank" stat cell.
 function bucketByDay(series, key, map) {
   for (const r of series || []) {
     const t = toMs(r.captured_at);
     if (t == null) continue;
     const dayMs = Math.floor(t / 86400000) * 86400000;
     const row = map.get(dayMs) || { t: dayMs };
-    if (row[key] == null || r.rank < row[key]) row[key] = r.rank;
+    row[key] = r.rank;
     map.set(dayMs, row);
   }
 }
