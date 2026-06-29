@@ -66,9 +66,7 @@ export default function SeoFooter({ context = 'global' }) {
         <div className="flex flex-col gap-8 md:flex-row md:gap-16">
           <div className="md:w-[200px] md:shrink-0">
             <div className="mb-2 flex items-center gap-1.5 text-[14px] font-medium tracking-tight">
-              <span className="grid h-5 w-5 place-items-center rounded-[5px] bg-foreground text-[11px] font-semibold text-background">
-                m
-              </span>
+              <img src="/mvt-icon.png" alt="" className="h-5 w-5 rounded-[5px] object-contain" />
               <span>mostviewed<span className="text-brand">.today</span></span>
             </div>
             <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
