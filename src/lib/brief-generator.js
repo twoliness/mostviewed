@@ -15,13 +15,13 @@ function utmUrl(path, content) {
 
 function buildPrompt({ topVideos, topShorts, topCreators, categorySummary, countrySummary, date }) {
   const topVideosJson = JSON.stringify(
-    topVideos.map((v, i) => ({
-      rank: i + 1,
+    topVideos.map((v) => ({
+      chart_rank: v.rank,
       id: v.id,
       title: v.title,
       channel: v.channel_title,
-      views: v.view_count,
-      views_formatted: formatViewCountShort(v.view_count),
+      total_views: v.view_count,
+      total_views_formatted: formatViewCountShort(v.view_count),
       category: v.category_name || null,
       url: `https://youtube.com/watch?v=${v.id}`,
     })),
@@ -30,13 +30,13 @@ function buildPrompt({ topVideos, topShorts, topCreators, categorySummary, count
   );
 
   const topShortsJson = JSON.stringify(
-    topShorts.map((v, i) => ({
-      rank: i + 1,
+    topShorts.map((v) => ({
+      chart_rank: v.rank,
       id: v.id,
       title: v.title,
       channel: v.channel_title,
-      views: v.view_count,
-      views_formatted: formatViewCountShort(v.view_count),
+      total_views: v.view_count,
+      total_views_formatted: formatViewCountShort(v.view_count),
       url: `https://youtube.com/watch?v=${v.id}`,
     })),
     null,
@@ -165,7 +165,8 @@ Here's today's quick read on what's breaking out on YouTube.
 **Why it's moving:**
 [2 sentences max. Explain the specific signal: rank, views today, creator presence, collaboration, title promise, release type, category movement, or view velocity. Do not overclaim.]
 
-**Views today:** [views]
+**Chart rank:** [rank]
+**Total views:** [total_views_formatted]
 **Category:** [normalized category if available]
 **Watch:** [url]
 
@@ -178,7 +179,8 @@ Here's today's quick read on what's breaking out on YouTube.
 **Why it's moving:**
 [2 sentences max. Explain the visible format signal: title style, emotion, simplicity, meme, comedy, visual hook, challenge, or shareability. Do not make algorithm claims.]
 
-**Views today:** [views]
+**Chart rank:** [rank]
+**Total views:** [total_views_formatted]
 **Watch:** [url]
 
 ---

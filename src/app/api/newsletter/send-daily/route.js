@@ -3,62 +3,92 @@ import { generateDailyBrief } from '@/lib/brief-generator';
 import { sendBriefEmail } from '@/lib/newsletter-emails';
 
 async function fetchLeaderboardData(db) {
+  // All queries use video_rank_history or video_summary filtered to currently-trending
+  // videos (last_seen within 2h). Previously used mv_latest_video_stats ORDER BY
+  // view_count DESC which returned the same high-lifetime-view videos every day
+  // regardless of what's actually trending.
   const [videosResult, shortsResult, creatorsResult, categoryResult, countryResult] =
     await Promise.all([
+      // Top 10 on the global:videos chart right now, in chart order
       db
         .prepare(
-          `SELECT v.id, v.title, v.channel_title, v.channel_id, v.category_id, m.view_count,
+          `SELECT v.id, v.title, v.channel_title, v.channel_id, v.category_id,
+                  rh.rank, vs.current_views as view_count,
                   c.name as category_name
-           FROM videos v
-           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+           FROM video_rank_history rh
+           INNER JOIN videos v ON v.id = rh.video_id
+           INNER JOIN video_summary vs ON vs.video_id = rh.video_id
            LEFT JOIN categories c ON v.category_id = c.id
-           WHERE v.is_short = 0
-           ORDER BY m.view_count DESC
+           WHERE rh.chart = 'global:videos'
+             AND rh.captured_at = (
+               SELECT MAX(captured_at) FROM video_rank_history WHERE chart = 'global:videos'
+             )
+           ORDER BY rh.rank ASC
            LIMIT 10`
         )
         .all(),
+      // Top 5 on the global:shorts chart right now, in chart order
       db
         .prepare(
-          `SELECT v.id, v.title, v.channel_title, m.view_count
-           FROM videos v
-           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-           WHERE v.is_short = 1
-           ORDER BY m.view_count DESC
+          `SELECT v.id, v.title, v.channel_title,
+                  rh.rank, vs.current_views as view_count
+           FROM video_rank_history rh
+           INNER JOIN videos v ON v.id = rh.video_id
+           INNER JOIN video_summary vs ON vs.video_id = rh.video_id
+           WHERE rh.chart = 'global:shorts'
+             AND rh.captured_at = (
+               SELECT MAX(captured_at) FROM video_rank_history WHERE chart = 'global:shorts'
+             )
+           ORDER BY rh.rank ASC
            LIMIT 5`
         )
         .all(),
+      // Creators ranked by combined views across their currently-trending videos
       db
         .prepare(
-          `SELECT v.channel_title, v.channel_id, COUNT(v.id) as video_count,
-                  SUM(m.view_count) as total_views
-           FROM videos v
-           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+          `SELECT v.channel_title, v.channel_id,
+                  COUNT(vs.video_id) as video_count,
+                  SUM(vs.current_views) as total_views
+           FROM video_summary vs
+           INNER JOIN videos v ON v.id = vs.video_id
            WHERE v.is_short = 0
+             AND vs.current_rank IS NOT NULL
+             AND vs.last_seen > datetime('now', '-2 hours')
            GROUP BY v.channel_id, v.channel_title
            ORDER BY total_views DESC
            LIMIT 5`
         )
         .all(),
+      // Category breakdown across currently-trending videos
       db
         .prepare(
-          `SELECT c.name as category, COUNT(v.id) as video_count,
-                  SUM(m.view_count) as total_views
-           FROM videos v
-           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
+          `SELECT c.name as category,
+                  COUNT(vs.video_id) as video_count,
+                  SUM(vs.current_views) as total_views
+           FROM video_summary vs
+           INNER JOIN videos v ON v.id = vs.video_id
            LEFT JOIN categories c ON v.category_id = c.id
-           WHERE v.is_short = 0 AND c.name IS NOT NULL
+           WHERE v.is_short = 0
+             AND vs.current_rank IS NOT NULL
+             AND vs.last_seen > datetime('now', '-2 hours')
+             AND c.name IS NOT NULL
            GROUP BY v.category_id, c.name
            ORDER BY total_views DESC
            LIMIT 8`
         )
         .all(),
+      // Country breakdown across currently-trending videos
       db
         .prepare(
-          `SELECT v.country_code, COUNT(v.id) as video_count,
-                  SUM(m.view_count) as total_views
-           FROM videos v
-           INNER JOIN mv_latest_video_stats m ON v.id = m.video_id
-           WHERE v.country_code IS NOT NULL AND v.country_code != ''
+          `SELECT v.country_code,
+                  COUNT(vs.video_id) as video_count,
+                  SUM(vs.current_views) as total_views
+           FROM video_summary vs
+           INNER JOIN videos v ON v.id = vs.video_id
+           WHERE v.is_short = 0
+             AND vs.current_rank IS NOT NULL
+             AND vs.last_seen > datetime('now', '-2 hours')
+             AND v.country_code IS NOT NULL AND v.country_code != ''
            GROUP BY v.country_code
            ORDER BY total_views DESC
            LIMIT 5`
