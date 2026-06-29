@@ -57,7 +57,8 @@ export async function getVideoDetail(db, videoId) {
     // "More from this creator" — top 5 other videos by current_views.
     db.prepare(`
       SELECT v.id, v.title, v.thumb_url, v.is_short, v.duration,
-             vs.current_rank, vs.peak_rank, vs.days_on_chart, vs.current_views
+             vs.current_rank, vs.peak_rank, vs.days_on_chart, vs.current_views,
+             vs.last_seen
       FROM video_summary vs
       JOIN videos v ON v.id = vs.video_id
       WHERE vs.channel_id = ? AND vs.video_id != ?

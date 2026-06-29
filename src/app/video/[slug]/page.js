@@ -329,7 +329,7 @@ export default async function VideoDetailPage({ params }) {
           })()}
         </section>
 
-        {/* Rank timeline — global chart only (multi-chart history is paywalled) */}
+        {/* Rank timeline — shows global + category series when available */}
         <section className="mb-3 rounded-xl border border-border bg-card p-4">
           <div className="mb-3 flex items-baseline justify-between">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -342,12 +342,20 @@ export default async function VideoDetailPage({ params }) {
                   Global
                 </span>
               ) : null}
+              {categoryPath ? (
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-sky-500" />
+                  {chartLabel(categoryStats.chart)}
+                </span>
+              ) : null}
             </div>
           </div>
 
-          {globalPath ? (
+          {(globalPath || categoryPath) ? (
             <RankTimelineChart
               globalSeries={globalStats?.sortedAsc ?? []}
+              categorySeries={categoryStats?.sortedAsc ?? []}
+              categoryLabel={categoryStats ? chartLabel(categoryStats.chart) : 'Category'}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">
@@ -403,7 +411,7 @@ export default async function VideoDetailPage({ params }) {
                         {v.current_views ? <span>{formatViewCountShort(v.current_views)} views</span> : null}
                       </div>
                     </div>
-                    {v.current_rank ? (
+                    {v.current_rank && v.last_seen && (Date.now() - Date.parse(v.last_seen)) < 2 * 60 * 60 * 1000 ? (
                       <span className="flex-shrink-0 rounded-md bg-brand/10 px-2 py-1 text-[11px] font-semibold text-brand">
                         Now #{v.current_rank}
                       </span>
