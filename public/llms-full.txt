@@ -2,7 +2,7 @@
 
 > A YouTube trending tracker that ranks the most viewed videos and Shorts worldwide, refreshed roughly every 30 minutes from live YouTube Data API snapshots.
 
-Generated: 2026-06-18
+Generated: 2026-06-29
 
 ---
 
@@ -13,7 +13,7 @@ url: "https://mostviewed.today/"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Global YouTube Trending Leaderboard
@@ -33,7 +33,7 @@ url: "https://mostviewed.today/shorts"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Shorts Leaderboard
@@ -53,7 +53,7 @@ url: "https://mostviewed.today/global"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Global YouTube Trends
@@ -73,7 +73,7 @@ url: "https://mostviewed.today/trending-now"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Trending Now
@@ -93,7 +93,7 @@ url: "https://mostviewed.today/viral-videos"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Viral Videos Today
@@ -113,7 +113,7 @@ url: "https://mostviewed.today/breaking-videos"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Breaking Viral Content
@@ -133,7 +133,7 @@ url: "https://mostviewed.today/most-liked"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Most Liked Videos
@@ -153,7 +153,7 @@ url: "https://mostviewed.today/monthly-top"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Monthly Top Videos
@@ -173,7 +173,7 @@ url: "https://mostviewed.today/weekly-charts"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Weekly YouTube Charts
@@ -193,7 +193,7 @@ url: "https://mostviewed.today/top-creators"
 site: "Most Viewed Today"
 type: "leaderboard"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Top YouTube Creators
@@ -213,7 +213,7 @@ url: "https://mostviewed.today/category/music"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Music – YouTube Trending Videos
@@ -233,7 +233,7 @@ url: "https://mostviewed.today/category/gaming"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Gaming – YouTube Trending Videos
@@ -253,7 +253,7 @@ url: "https://mostviewed.today/category/sports"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Sports – YouTube Trending Videos
@@ -273,7 +273,7 @@ url: "https://mostviewed.today/category/entertainment"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Entertainment – YouTube Trending Videos
@@ -293,7 +293,7 @@ url: "https://mostviewed.today/category/news-politics"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # News & Politics – YouTube Trending Videos
@@ -313,7 +313,7 @@ url: "https://mostviewed.today/category/howto-style"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Howto & Style – YouTube Trending Videos
@@ -333,7 +333,7 @@ url: "https://mostviewed.today/category/comedy"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Comedy – YouTube Trending Videos
@@ -353,7 +353,7 @@ url: "https://mostviewed.today/category/people-blogs"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # People & Blogs – YouTube Trending Videos
@@ -373,7 +373,7 @@ url: "https://mostviewed.today/category/science-technology"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Science & Technology – YouTube Trending Videos
@@ -387,33 +387,13 @@ Canonical page: https://mostviewed.today/category/science-technology
 ---
 
 ---
-title: "Education – YouTube Trending Videos"
-description: "Most viewed YouTube videos right now in the Education category."
-url: "https://mostviewed.today/category/education"
-site: "Most Viewed Today"
-type: "category"
-data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
----
-
-# Education – YouTube Trending Videos
-
-Most viewed YouTube videos right now in the Education category.
-
-This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
-
-Canonical page: https://mostviewed.today/category/education
-
----
-
----
 title: "Film & Animation – YouTube Trending Videos"
 description: "Most viewed YouTube videos right now in the Film & Animation category."
 url: "https://mostviewed.today/category/film-animation"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Film & Animation – YouTube Trending Videos
@@ -433,7 +413,7 @@ url: "https://mostviewed.today/category/autos-vehicles"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Autos & Vehicles – YouTube Trending Videos
@@ -453,7 +433,7 @@ url: "https://mostviewed.today/category/pets-animals"
 site: "Most Viewed Today"
 type: "category"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # Pets & Animals – YouTube Trending Videos
@@ -473,7 +453,7 @@ url: "https://mostviewed.today/trending/usa"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in United States
@@ -493,7 +473,7 @@ url: "https://mostviewed.today/trending/uk"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in United Kingdom
@@ -513,7 +493,7 @@ url: "https://mostviewed.today/trending/canada"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in Canada
@@ -533,7 +513,7 @@ url: "https://mostviewed.today/trending/australia"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in Australia
@@ -553,7 +533,7 @@ url: "https://mostviewed.today/trending/india"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in India
@@ -573,7 +553,7 @@ url: "https://mostviewed.today/trending/germany"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in Germany
@@ -593,7 +573,7 @@ url: "https://mostviewed.today/trending/brazil"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in Brazil
@@ -603,3 +583,30 @@ Most viewed YouTube videos trending in Brazil (BR) right now.
 This is a live, continuously updated leaderboard page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — view the canonical URL below for current rankings, view counts, and timestamps.
 
 Canonical page: https://mostviewed.today/trending/brazil
+
+---
+
+---
+title: "YouTube Video Performance Detail"
+description: "Per-video performance page showing rank history, daily view trends, peak rank, and chart timeline for any tracked YouTube video."
+url: "https://mostviewed.today/video/[slug]"
+site: "Most Viewed Today"
+type: "video"
+data_refresh: "View counts and rank updated every 30 minutes while the video is on the trending chart; off-chart videos refreshed every 12 hours via creator tracking."
+generated: "2026-06-29"
+---
+
+# YouTube Video Performance Detail
+
+Per-video performance page showing rank history, daily view trends, peak rank, and chart timeline for any tracked YouTube video.
+
+Each video detail page includes:
+- Current chart rank and peak rank across global and category charts
+- Days on chart and total view count
+- Rank timeline chart showing rank position over time across all charts the video appeared in
+- Daily view delta history (how many views the video gained each day)
+- Creator profile with subscriber count and other videos from the same channel
+
+This is a live, continuously updated page on Most Viewed Today (https://mostviewed.today). Numbers on this static summary are not live — follow the canonical URL for current rankings, view counts, and timestamps.
+
+Canonical page pattern: https://mostviewed.today/video/{title-slug}-{youtube-video-id}

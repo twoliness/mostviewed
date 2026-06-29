@@ -26,7 +26,6 @@ Most Viewed Today (https://mostviewed.today) tracks YouTube video and Shorts per
 - [Comedy – YouTube Trending Videos](https://mostviewed.today/ai/category-comedy.md): Most viewed YouTube videos right now in the Comedy category.
 - [People & Blogs – YouTube Trending Videos](https://mostviewed.today/ai/category-people-blogs.md): Most viewed YouTube videos right now in the People & Blogs category.
 - [Science & Technology – YouTube Trending Videos](https://mostviewed.today/ai/category-science-technology.md): Most viewed YouTube videos right now in the Science & Technology category.
-- [Education – YouTube Trending Videos](https://mostviewed.today/ai/category-education.md): Most viewed YouTube videos right now in the Education category.
 - [Film & Animation – YouTube Trending Videos](https://mostviewed.today/ai/category-film-animation.md): Most viewed YouTube videos right now in the Film & Animation category.
 - [Autos & Vehicles – YouTube Trending Videos](https://mostviewed.today/ai/category-autos-vehicles.md): Most viewed YouTube videos right now in the Autos & Vehicles category.
 - [Pets & Animals – YouTube Trending Videos](https://mostviewed.today/ai/category-pets-animals.md): Most viewed YouTube videos right now in the Pets & Animals category.
@@ -39,6 +38,10 @@ Most Viewed Today (https://mostviewed.today) tracks YouTube video and Shorts per
 - [YouTube Trending in India](https://mostviewed.today/ai/trending-india.md): Most viewed YouTube videos trending in India (IN) right now.
 - [YouTube Trending in Germany](https://mostviewed.today/ai/trending-germany.md): Most viewed YouTube videos trending in Germany (DE) right now.
 - [YouTube Trending in Brazil](https://mostviewed.today/ai/trending-brazil.md): Most viewed YouTube videos trending in Brazil (BR) right now.
+
+## Video Pages
+
+- [YouTube Video Performance Detail](https://mostviewed.today/ai/video-detail.md): Per-video performance page showing rank history, daily view trends, peak rank, and chart timeline for any tracked YouTube video. Pages follow the pattern /video/{title-slug}-{youtube-video-id}.
 
 ## Optional
 

@@ -5,7 +5,7 @@ url: "https://mostviewed.today/trending/usa"
 site: "Most Viewed Today"
 type: "country"
 data_refresh: "Rankings are refreshed roughly every 30 minutes from live YouTube Data API snapshots; Shorts and country/trending data refresh on their own faster or hourly cycles."
-generated: "2026-06-18"
+generated: "2026-06-29"
 ---
 
 # YouTube Trending in United States

@@ -1,8 +1,10 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { POPULAR_CATEGORIES_DISPLAY, SUPPORTED_COUNTRIES } from '@/lib/types';
+import { videoSlug } from '@/lib/utils';
 
 const BASE_URL = 'https://mostviewed.today';
 
-export default function sitemap() {
+export default async function sitemap() {
   const now = new Date();
 
   const staticRoutes = [
@@ -30,10 +32,33 @@ export default function sitemap() {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...categoryRoutes, ...countryRoutes].map((route) => ({
+  let videoRoutes = [];
+  try {
+    const { env } = getCloudflareContext();
+    const result = await env.DB.prepare(`
+      SELECT v.id, v.title, vs.last_seen
+      FROM video_summary vs
+      JOIN videos v ON v.id = vs.video_id
+      WHERE vs.last_seen > datetime('now', '-30 days')
+      ORDER BY vs.current_views DESC
+      LIMIT 500
+    `).all();
+    videoRoutes = (result.results || []).map((video) => ({
+      url: `${BASE_URL}/video/${videoSlug(video)}`,
+      lastModified: video.last_seen ? new Date(video.last_seen) : now,
+      changeFrequency: 'daily',
+      priority: 0.75,
+    }));
+  } catch {
+    // DB unavailable at build time — video routes omitted
+  }
+
+  const staticEntries = [...staticRoutes, ...categoryRoutes, ...countryRoutes].map((route) => ({
     url: `${BASE_URL}${route.path}`,
     lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
+
+  return [...staticEntries, ...videoRoutes];
 }
