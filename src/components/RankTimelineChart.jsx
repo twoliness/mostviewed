@@ -76,9 +76,11 @@ export default function RankTimelineChart({
   const allRanks = data.flatMap((d) => [d.global, d.category]).filter((r) => r != null);
   const maxRank = allRanks.length ? Math.max(...allRanks) : 10;
   const baseValue = maxRank + 1;
-  // Force integer ticks including #1; recharts otherwise auto-picks and may
-  // drop the top of the domain.
-  const yTicks = Array.from({ length: baseValue }, (_, i) => i + 1);
+  // Adaptive ticks: step=1 when maxRank≤10 (keeps labels visible on short
+  // ranges), step=10 otherwise (avoids the dense label pile-up bug).
+  const step = maxRank <= 10 ? 1 : 10;
+  const yTicks = [1];
+  for (let v = step === 1 ? 2 : step; v <= maxRank; v += step) yTicks.push(v);
 
   const config = React.useMemo(
     () => ({
@@ -112,9 +114,8 @@ export default function RankTimelineChart({
           axisLine={false}
           width={28}
           tickMargin={4}
-          domain={[1, baseValue]}
+          domain={[0.5, baseValue]}
           ticks={yTicks}
-          interval={0}
           tickFormatter={(v) => `#${v}`}
         />
         <ChartTooltip
