@@ -1,55 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-// Import our collection handlers
-async function triggerVideoCollection(env) {
-  console.log('[Scheduled] Triggering global video collection...');
-
-  const { YouTubeApiService } = await import('@/lib/youtube-api');
-  const { DatabaseService } = await import('@/lib/database');
-
-  const youtube = new YouTubeApiService(env.YOUTUBE_API_KEY);
-  const db = new DatabaseService(env.DB);
-
-  // Collect trending videos (fetch top 100 from YouTube's most popular chart)
-  console.log('[Scheduled] Collecting global trending videos...');
-  const globalVideos = await youtube.getMostPopularVideos(100);
-
-  // Transform and prepare for batch insert
-  const globalData = globalVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-
-  // Batch insert global videos
-  await db.batchUpsertVideosWithStats(globalData);
-  console.log(`[Scheduled] Inserted ${globalData.length} global trending videos`);
-
-  // Collect global trending Shorts (top 100)
-  console.log('[Scheduled] Collecting global trending Shorts...');
-  let shortsCount = 0;
-  try {
-    const shortsVideos = await youtube.getMostPopularShorts(100);
-
-    if (shortsVideos.length > 0) {
-      const shortsData = shortsVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);
-      if (shortsData.length > 0) {
-        await db.batchUpsertVideosWithStats(shortsData);
-        console.log(`[Scheduled] Inserted ${shortsData.length} global trending Shorts`);
-        shortsCount = shortsData.length;
-      }
-    }
-  } catch (error) {
-    console.error('[Scheduled] Error fetching Shorts:', error);
-  }
-
-  // Clear caches after successful collection
-  await clearAllCaches(env);
-
-  return {
-    globalVideos: globalData.length,
-    globalShorts: shortsCount,
-    totalVideos: globalData.length + shortsCount
-  };
-}
-
 async function triggerCreatorCollection(env) {
   console.log('[Scheduled] Triggering creator collection...');
   
@@ -234,38 +185,22 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
     }
 
-    // Get the current time to determine which task to run
-    const now = new Date();
-    const currentHour = now.getUTCHours();
-    const currentMinute = now.getUTCMinutes();
-    
-    // Determine which cron job triggered this
-    // Creator collection runs every 12 hours (0 and 12 UTC), exactly on the hour
-    // Video collection runs every 30 minutes
-    const isCreatorCollection = currentMinute === 0 && (currentHour % 12 === 0);
-    
-    let result;
-    if (isCreatorCollection) {
-      console.log('[Scheduled] Running creator collection (12-hour schedule)');
-      const creatorStats = await triggerCreatorCollection(env);
-      result = {
-        success: true,
-        type: 'creator_collection',
-        message: 'Creator collection completed successfully',
-        timestamp: new Date().toISOString(),
-        statistics: creatorStats
-      };
-    } else {
-      console.log('[Scheduled] Running video collection (30-minute schedule)');
-      const videoStats = await triggerVideoCollection(env);
-      result = {
-        success: true,
-        type: 'video_collection',
-        message: 'Video collection completed successfully',
-        timestamp: new Date().toISOString(),
-        statistics: videoStats
-      };
-    }
+    // Routing: worker.js routes the `10 */12 * * *` cron string explicitly to
+    // this endpoint, so we always run creator collection here. The legacy
+    // wall-clock check (`currentMinute === 0 && currentHour % 12 === 0`) was
+    // gating on the wrong minute and silently routed every creator cron tick
+    // into video collection — which is why creators never updated after the
+    // worker.js cron-string-routing change on 2026-06-27. Video collection has
+    // its own dedicated route + cron (`/api/scheduled/videos`, `0,30 * * * *`).
+    console.log('[Scheduled] Running creator collection (12-hour schedule)');
+    const creatorStats = await triggerCreatorCollection(env);
+    const result = {
+      success: true,
+      type: 'creator_collection',
+      message: 'Creator collection completed successfully',
+      timestamp: new Date().toISOString(),
+      statistics: creatorStats,
+    };
 
     console.log(`[Scheduled] ${result.type} completed successfully`, result);
     return NextResponse.json(result);

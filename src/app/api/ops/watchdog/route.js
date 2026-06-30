@@ -101,7 +101,7 @@ async function handle(request) {
           ],
           context: {
             check: check.name,
-            host: url.host,
+            host: url.host || 'mostviewed.today',
           },
         });
       }
