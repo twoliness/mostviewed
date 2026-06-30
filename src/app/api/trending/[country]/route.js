@@ -31,8 +31,11 @@ export async function GET(request, { params }) {
     const context = getCloudflareContext();
     const env = context.env;
 
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 100);
+
     // Check cache first
-    const cacheKey = `/api/trending/${country}`;
+    const cacheKey = `/api/trending/${country}?limit=${limit}`;
     const cached = await env.VIDTRENDS_CACHE.get(cacheKey);
     if (cached) {
       console.log(`[API] Returning cached trending for ${country}`);
@@ -48,7 +51,7 @@ export async function GET(request, { params }) {
     const db = new DatabaseService(env.DB);
 
     // Get trending videos for this country
-    const data = await db.getCountryTrendingVideos(countryCode, 50);
+    const data = await db.getCountryTrendingVideos(countryCode, limit);
 
     const response = JSON.stringify(data);
 

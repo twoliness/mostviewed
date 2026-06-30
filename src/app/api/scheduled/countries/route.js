@@ -10,7 +10,9 @@ const COUNTRIES = [
   { code: 'GB', name: 'UK' },
   { code: 'CA', name: 'Canada' },
   { code: 'AU', name: 'Australia' },
-  { code: 'IN', name: 'India' }
+  { code: 'IN', name: 'India' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'BR', name: 'Brazil' },
 ];
 
 export async function POST(request) {

@@ -10,6 +10,7 @@ import {
 } from '@/lib/utils';
 import { POPULAR_CATEGORIES_DISPLAY } from '@/lib/types';
 import RankTimelineChart from '@/components/RankTimelineChart';
+import SeoFooter from '@/components/SeoFooter';
 
 const BASE_URL = 'https://mostviewed.today';
 
@@ -413,6 +414,7 @@ export default async function VideoDetailPage({ params }) {
             </ul>
           </section>
         ) : null}
+        <SeoFooter context="global" />
       </main>
     </div>
   );

@@ -281,8 +281,28 @@ export class DatabaseService {
   /**
    * Get category-specific leaderboard
    */
-  async getCategoryLeaderboard(categoryId, limit= 10) {
-    return this._chartLeaderboard(`category:${categoryId}:videos`, limit);
+  async getCategoryLeaderboard(categoryId, limit = 10) {
+    const chart = `category:${categoryId}:videos`;
+    const chartVideos = await this._chartLeaderboard(chart, limit);
+    if (chartVideos.length >= limit) return chartVideos;
+
+    // Supplement with category-matched videos by view count when chart is thin
+    const existing = chartVideos.map(v => `'${v.id}'`).join(',') || "''";
+    const need = limit - chartVideos.length;
+    const stmt = this.db.prepare(`
+      SELECT
+        v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
+        v.category_id, v.is_short,
+        m.view_count, m.captured_at,
+        NULL AS rank
+      FROM videos v
+      INNER JOIN mv_latest_video_stats m ON m.video_id = v.id
+      WHERE v.category_id = ? AND v.is_short = 0 AND v.id NOT IN (${existing})
+      ORDER BY m.view_count DESC
+      LIMIT ?
+    `);
+    const fill = (await stmt.bind(categoryId, need).all()).results;
+    return [...chartVideos, ...fill];
   }
 
   /**
