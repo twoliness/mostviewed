@@ -24,6 +24,7 @@ export default {
         '25 3 * * *':    '/api/scheduled/daily-rollups',
         '2,32 * * * *':  '/api/scheduled/detect-breakouts',
         '17,47 * * * *': '/api/scheduled/refresh-breakouts',
+        '20 9 * * *':    '/api/social/post',
       };
 
       const apiEndpoint = cronRoutes[event.cron];
