@@ -2,8 +2,6 @@ import { ImageResponse } from 'next/og';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseService } from '@/lib/database';
 
-export const runtime = 'edge';
-
 const CHART_CONFIG = {
   global:        { label: 'GLOBAL TOP 10',        chart: 'global:videos',       emoji: '🌍' },
   music:         { label: 'MUSIC TOP 10',          chart: 'category:10:videos',  emoji: '🎵' },
