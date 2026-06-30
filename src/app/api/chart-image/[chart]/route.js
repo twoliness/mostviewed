@@ -41,10 +41,10 @@ export async function GET(request, { params }) {
     return new Response('Unknown chart', { status: 404 });
   }
 
-  // Fetch fonts
+  // Fetch fonts — satori requires woff/ttf/otf, NOT woff2
   const [boldFont, regularFont] = await Promise.all([
-    fetch('https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50KnMw2boKoduKmMEVuFuYAZ9hiJ-Ek-_EeA.woff2').then(r => r.arrayBuffer()),
-    fetch('https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-700-normal.woff').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-400-normal.woff').then(r => r.arrayBuffer()),
   ]).catch(() => [null, null]);
 
   const context = getCloudflareContext();
