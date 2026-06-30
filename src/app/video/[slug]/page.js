@@ -180,15 +180,29 @@ export default async function VideoDetailPage({ params }) {
     ? `category:${video.category_id}:${isShort ? 'shorts' : 'videos'}` : null;
   const globalStats = chartStats(globalChartKey, rank_history, chart_totals);
   const categoryStats = categoryChartKey ? chartStats(categoryChartKey, rank_history, chart_totals) : null;
+  // YouTube's per-category fetches return cross-category videos, so a video
+  // whose home category is Entertainment may have its only rank data on
+  // category:23 (Comedy) or country:US:category:26. Without this fallback,
+  // those videos render "Off chart / Peak — / Days 0" even though the rollup
+  // writer captured rank #1 elsewhere. summary.peak_rank_chart points to the
+  // chart where it actually peaked.
+  const fallbackChartKey = (!globalStats && !categoryStats && summary?.peak_rank_chart)
+    ? summary.peak_rank_chart
+    : null;
+  const fallbackStats = fallbackChartKey
+    ? chartStats(fallbackChartKey, rank_history, chart_totals)
+    : null;
   // Build a shared-axis overlay if either chart has enough data.
   const allSeries = [
     ...(globalStats?.sortedAsc ?? []),
     ...(categoryStats?.sortedAsc ?? []),
+    ...(fallbackStats?.sortedAsc ?? []),
   ];
   const sharedMin = allSeries.length ? Math.min(...allSeries.map((r) => r.rank)) : 1;
   const sharedMax = allSeries.length ? Math.max(...allSeries.map((r) => r.rank)) : 1;
   const globalPath = globalStats ? buildSvgPath(globalStats.sortedAsc, sharedMin, sharedMax) : null;
   const categoryPath = categoryStats ? buildSvgPath(categoryStats.sortedAsc, sharedMin, sharedMax) : null;
+  const fallbackPath = fallbackStats ? buildSvgPath(fallbackStats.sortedAsc, sharedMin, sharedMax) : null;
   const firstAll = allSeries.length
     ? formatShortDate(allSeries.map((r) => r.captured_at).sort()[0]) : null;
   const lastAll = allSeries.length
@@ -197,7 +211,7 @@ export default async function VideoDetailPage({ params }) {
   // tells us when it last appeared on a chart — never bumped by the inline
   // YouTube refresh, so it stays as the chart-presence end date.
   const lastSeenMs = summary?.last_seen ? Date.parse(summary.last_seen) : null;
-  const isOffChart = !(globalStats?.currentRank || categoryStats?.currentRank)
+  const isOffChart = !(globalStats?.currentRank || categoryStats?.currentRank || fallbackStats?.currentRank)
     || (lastSeenMs ? (Date.now() - lastSeenMs) > STALE_MS : false);
   // updated_at IS bumped by the YouTube refresh, so "Total views" recency
   // reflects the latest refresh, not the last chart appearance. A video is
@@ -285,8 +299,8 @@ export default async function VideoDetailPage({ params }) {
             signal: current rank if active globally; otherwise category. */}
         <section className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border">
           {(() => {
-            // Prefer global stats; fall back to category if global has no data.
-            const primary = globalStats || categoryStats;
+            // Prefer global, then home-category, then peak chart anywhere.
+            const primary = globalStats || categoryStats || fallbackStats;
             const isCurrent = primary?.currentRank != null;
             return (
               <>
@@ -343,11 +357,13 @@ export default async function VideoDetailPage({ params }) {
             </div>
           </div>
 
-          {(globalPath || categoryPath) ? (
+          {(globalPath || categoryPath || fallbackPath) ? (
             <RankTimelineChart
-              globalSeries={globalStats?.sortedAsc ?? []}
+              globalSeries={globalStats?.sortedAsc ?? fallbackStats?.sortedAsc ?? []}
               categorySeries={categoryStats?.sortedAsc ?? []}
-              categoryLabel={categoryStats ? chartLabel(categoryStats.chart) : 'Category'}
+              categoryLabel={categoryStats
+                ? chartLabel(categoryStats.chart)
+                : (fallbackStats ? chartLabel(fallbackStats.chart) : 'Category')}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-border p-6 text-center text-[12px] text-muted-foreground">
@@ -357,7 +373,7 @@ export default async function VideoDetailPage({ params }) {
 
           {/* Summary pills (per reference mockup) */}
           {(() => {
-            const primary = globalStats || categoryStats;
+            const primary = globalStats || categoryStats || fallbackStats;
             if (!primary) return null;
             return (
               <div className="mt-4 flex flex-wrap gap-1.5">

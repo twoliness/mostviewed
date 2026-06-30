@@ -283,7 +283,13 @@ export class DatabaseService {
    */
   async getCategoryLeaderboard(categoryId, limit = 10) {
     const chart = `category:${categoryId}:videos`;
-    const chartVideos = await this._chartLeaderboard(chart, limit);
+    // YouTube's videoCategoryId=N fetch returns ~50-70% homogeneous results,
+    // so we over-fetch and filter by the actual videos.category_id. This stops
+    // cross-category leakage (e.g. MrBeast Entertainment videos surfacing on
+    // the Comedy leaderboard). The over-fetch headroom is generous so a
+    // monoculture-Gaming day still has enough to fill the leaderboard.
+    const chartVideosAll = await this._chartLeaderboard(chart, limit * 5);
+    const chartVideos = chartVideosAll.filter(v => v.category_id === categoryId).slice(0, limit);
     if (chartVideos.length >= limit) return chartVideos;
 
     // Supplement with category-matched videos by view count when chart is thin
@@ -311,12 +317,13 @@ export class DatabaseService {
   async getCategoryLeaderboardCombined(categoryId, limit= 50) {
     // Union of the two chart-rank leaderboards (videos + shorts). We interleave
     // by rank so positions reflect each video's actual YouTube chart position
-    // within its respective chart.
+    // within its respective chart. Same cross-category filter as above.
     const [videos, shorts] = await Promise.all([
-      this._chartLeaderboard(`category:${categoryId}:videos`, limit),
-      this._chartLeaderboard(`category:${categoryId}:shorts`, limit),
+      this._chartLeaderboard(`category:${categoryId}:videos`, limit * 5),
+      this._chartLeaderboard(`category:${categoryId}:shorts`, limit * 5),
     ]);
     return [...videos, ...shorts]
+      .filter(v => v.category_id === categoryId)
       .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
       .slice(0, limit);
   }
@@ -325,7 +332,8 @@ export class DatabaseService {
    * Get category-specific shorts leaderboard
    */
   async getCategoryShortsLeaderboard(categoryId, limit= 10) {
-    return this._chartLeaderboard(`category:${categoryId}:shorts`, limit);
+    const all = await this._chartLeaderboard(`category:${categoryId}:shorts`, limit * 5);
+    return all.filter(v => v.category_id === categoryId).slice(0, limit);
   }
 
   /**

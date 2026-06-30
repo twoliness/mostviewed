@@ -21,6 +21,15 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 const MIN_VELOCITY_DELTA_HOURS = 10 / 60;   // matches rollups.js#computeVelocity
 const HOUR_MS = 60 * 60 * 1000;
 
+// "Impossible jump" heuristics — guard against YouTube API hiccup snapshots
+// where a single video_stats row reports a view count wildly above reality
+// (returns a stale-but-corrected value on the next tick). The 10-min floor
+// doesn't help because the offending pairs are properly spaced; only the
+// magnitude is wrong. Real launches top out around 5M v/hr globally.
+const ABSOLUTE_VELOCITY_CEIL = 10_000_000;          // v/hr — sanity bound
+const RELATIVE_DELTA_CEIL = 0.25;                   // delta as share of prev views
+const RELATIVE_FILTER_MIN_VIEWS = 100_000;          // < this is fresh-launch territory where huge % growth is real
+
 const DAY1_TARGET_H  = 24;
 const WEEK1_TARGET_H = 24 * 7;
 const ENGAGEMENT_TOLERANCE_H = 6;            // accept a stats row within ±6h of the target
@@ -66,6 +75,8 @@ function recomputeForVideo(stats, firstSeen) {
     const delta = (b.view_count ?? 0) - (a.view_count ?? 0);
     if (delta < 0) continue;
     const v = delta / hours;
+    if (v > ABSOLUTE_VELOCITY_CEIL) continue;
+    if ((a.view_count ?? 0) > RELATIVE_FILTER_MIN_VIEWS && delta > a.view_count * RELATIVE_DELTA_CEIL) continue;
     if (peakVelocity === null || v > peakVelocity) {
       peakVelocity = v;
       peakVelocityAt = b.captured_at;
