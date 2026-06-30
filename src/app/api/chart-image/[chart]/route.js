@@ -1,6 +1,7 @@
-import { ImageResponse } from 'next/og';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseService } from '@/lib/database';
+
+export const dynamic = 'force-dynamic';
 
 const CHART_CONFIG = {
   global:        { label: 'GLOBAL TOP 10',        chart: 'global:videos',       emoji: '🌍' },
@@ -9,12 +10,13 @@ const CHART_CONFIG = {
   gaming:        { label: 'GAMING TOP 10',         chart: 'category:20:videos',  emoji: '🎮' },
 };
 
-const BRAND    = '#00ff7f';
-const BG       = '#0a0a0a';
-const CARD     = '#141414';
-const DIVIDER  = '#222222';
-const WHITE    = '#ffffff';
-const GRAY     = '#888888';
+const W = 800;
+const H = 1040;
+const HEADER_H = 220;
+const ROW_H = 64;
+const ROW_PADDING_X = 36;
+const FOOTER_H = 36;
+const COLHEADER_H = 36;
 
 function fmtViews(n) {
   if (!n) return '—';
@@ -25,209 +27,106 @@ function fmtViews(n) {
 }
 
 function fmtWeekDate() {
-  const now = new Date();
-  return now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+  return new Date()
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    .toUpperCase();
+}
+
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function truncate(str, max) {
   if (!str) return '';
-  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+  const s = String(str);
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+function renderRow(v, i) {
+  const isTop = i === 0;
+  const rank = v.rank ?? i + 1;
+  const y = HEADER_H + COLHEADER_H + i * ROW_H;
+  const fontFamily = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+  return `
+    ${isTop ? `<rect x="0" y="${y}" width="${W}" height="${ROW_H}" fill="#141414"/>` : ''}
+    <text x="${ROW_PADDING_X}" y="${y + 38}" font-family="${fontFamily}" font-size="${isTop ? 30 : 22}" font-weight="800" fill="${isTop ? '#00ff7f' : '#ffffff'}">${rank}</text>
+    <text x="${ROW_PADDING_X + 56}" y="${y + 26}" font-family="${fontFamily}" font-size="${isTop ? 15 : 14}" font-weight="700" fill="#ffffff">${esc(truncate(v.title || '', 50).toUpperCase())}</text>
+    <text x="${ROW_PADDING_X + 56}" y="${y + 46}" font-family="${fontFamily}" font-size="11" font-weight="400" fill="#888888">${esc(truncate(v.channel_title || '', 38))}</text>
+    <text x="${W - ROW_PADDING_X}" y="${y + 30}" font-family="${fontFamily}" font-size="${isTop ? 18 : 16}" font-weight="800" fill="${isTop ? '#00ff7f' : '#ffffff'}" text-anchor="end">${fmtViews(v.view_count)}</text>
+    <text x="${W - ROW_PADDING_X}" y="${y + 46}" font-family="${fontFamily}" font-size="9" font-weight="600" fill="#888888" text-anchor="end" letter-spacing="1">VIEWS</text>
+    <line x1="0" y1="${y + ROW_H}" x2="${W}" y2="${y + ROW_H}" stroke="#222222" stroke-width="1"/>
+  `;
+}
+
+function renderSvg(config, videos, weekDate) {
+  const fontFamily = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+  const rows = (videos.length === 0)
+    ? `<text x="${W / 2}" y="${HEADER_H + COLHEADER_H + 200}" font-family="${fontFamily}" font-size="16" fill="#888888" text-anchor="middle">No data yet — check back soon</text>`
+    : videos.slice(0, 10).map(renderRow).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="#0a0a0a"/>
+
+  <!-- Header (brand green) -->
+  <rect x="0" y="0" width="${W}" height="${HEADER_H}" fill="#00ff7f"/>
+
+  <!-- Tiny logo bars -->
+  <rect x="${ROW_PADDING_X}" y="38" width="6" height="10" fill="#000000"/>
+  <rect x="${ROW_PADDING_X + 10}" y="32" width="6" height="16" fill="#000000"/>
+  <rect x="${ROW_PADDING_X + 20}" y="26" width="6" height="22" fill="#000000"/>
+  <text x="${ROW_PADDING_X + 38}" y="46" font-family="${fontFamily}" font-size="18" font-weight="700" fill="#000000">mostviewed.today</text>
+
+  <!-- Chart dated -->
+  <text x="${W - ROW_PADDING_X}" y="32" font-family="${fontFamily}" font-size="10" font-weight="400" fill="#000000" fill-opacity="0.6" letter-spacing="1.5" text-anchor="end">CHART DATED</text>
+  <text x="${W - ROW_PADDING_X}" y="48" font-family="${fontFamily}" font-size="12" font-weight="700" fill="#000000" text-anchor="end">${esc(weekDate)}</text>
+
+  <!-- Title box -->
+  <rect x="${ROW_PADDING_X}" y="84" width="${W - ROW_PADDING_X * 2}" height="76" fill="none" stroke="#000000" stroke-width="3"/>
+  <text x="${ROW_PADDING_X + 20}" y="138" font-family="${fontFamily}" font-size="40" font-weight="900" fill="#000000" letter-spacing="-1">${esc(config.label)}</text>
+  <text x="${W - ROW_PADDING_X - 20}" y="138" font-size="40" text-anchor="end">${config.emoji}</text>
+
+  <!-- Subtitle -->
+  <text x="${ROW_PADDING_X}" y="190" font-family="${fontFamily}" font-size="12" font-weight="400" fill="#000000" fill-opacity="0.6" letter-spacing="1">MOST VIEWED VIDEOS THIS WEEK · mostviewed.today</text>
+
+  <!-- Column headers -->
+  <text x="${ROW_PADDING_X + 56}" y="${HEADER_H + 22}" font-family="${fontFamily}" font-size="10" font-weight="700" fill="#888888" letter-spacing="1.5">TITLE / CHANNEL</text>
+  <text x="${W - ROW_PADDING_X}" y="${HEADER_H + 22}" font-family="${fontFamily}" font-size="10" font-weight="700" fill="#888888" letter-spacing="1.5" text-anchor="end">VIEWS</text>
+  <line x1="0" y1="${HEADER_H + COLHEADER_H}" x2="${W}" y2="${HEADER_H + COLHEADER_H}" stroke="#222222" stroke-width="1"/>
+
+  <!-- Rows -->
+  ${rows}
+
+  <!-- Footer -->
+  <rect x="0" y="${H - FOOTER_H}" width="${W}" height="${FOOTER_H}" fill="#141414"/>
+  <text x="${ROW_PADDING_X}" y="${H - 14}" font-family="${fontFamily}" font-size="11" fill="#888888">mostviewed.today</text>
+  <text x="${W - ROW_PADDING_X}" y="${H - 14}" font-family="${fontFamily}" font-size="11" fill="#888888" text-anchor="end">Data refreshed every 30 min · YouTube trending chart</text>
+</svg>`;
 }
 
 export async function GET(request, { params }) {
   const { chart: chartKey } = await params;
   const config = CHART_CONFIG[chartKey];
-  if (!config) {
-    return new Response('Unknown chart', { status: 404 });
-  }
-
-  // Fetch fonts — satori requires woff/ttf/otf, NOT woff2
-  const [boldFont, regularFont] = await Promise.all([
-    fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-700-normal.woff').then(r => r.arrayBuffer()),
-    fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5/files/inter-latin-400-normal.woff').then(r => r.arrayBuffer()),
-  ]).catch(() => [null, null]);
+  if (!config) return new Response('Unknown chart', { status: 404 });
 
   const context = getCloudflareContext();
   const db = new DatabaseService(context.env.DB);
   const videos = await db._chartLeaderboard(config.chart, 10);
 
-  const weekDate = fmtWeekDate();
+  const svg = renderSvg(config, videos, fmtWeekDate());
 
-  const fontConfig = boldFont && regularFont ? [
-    { name: 'Inter', data: boldFont,   weight: 700, style: 'normal' },
-    { name: 'Inter', data: regularFont, weight: 400, style: 'normal' },
-  ] : [];
-
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: 800,
-          height: 1040,
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          background: BG,
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            background: BRAND,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '28px 36px 24px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Logo bars */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
-                <div style={{ width: 6, height: 10, background: '#000', borderRadius: 1 }} />
-                <div style={{ width: 6, height: 16, background: '#000', borderRadius: 1 }} />
-                <div style={{ width: 6, height: 22, background: '#000', borderRadius: 1 }} />
-              </div>
-              <span style={{ fontSize: 18, fontWeight: 700, color: '#000', letterSpacing: -0.5 }}>
-                mostviewed.today
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: 10, fontWeight: 400, color: '#000', letterSpacing: 1.5, opacity: 0.6 }}>
-                CHART DATED
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#000', letterSpacing: 0.5 }}>
-                {weekDate}
-              </span>
-            </div>
-          </div>
-
-          {/* Chart title box */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              border: '3px solid #000',
-              padding: '12px 20px',
-            }}
-          >
-            <span style={{ fontSize: 42, fontWeight: 700, color: '#000', letterSpacing: -1, lineHeight: 1 }}>
-              {config.label}
-            </span>
-            <span style={{ fontSize: 42, lineHeight: 1 }}>{config.emoji}</span>
-          </div>
-          <div style={{ marginTop: 12, fontSize: 12, fontWeight: 400, color: '#000', opacity: 0.6, letterSpacing: 1 }}>
-            MOST VIEWED VIDEOS THIS WEEK · mostviewed.today
-          </div>
-        </div>
-
-        {/* List */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: BG }}>
-          {/* Column headers */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 36px',
-              borderBottom: `1px solid ${DIVIDER}`,
-            }}
-          >
-            <div style={{ width: 52 }} />
-            <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: GRAY, letterSpacing: 1.5 }}>
-              TITLE / CHANNEL
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: GRAY, letterSpacing: 1.5 }}>
-              VIEWS
-            </div>
-          </div>
-
-          {videos.length === 0 ? (
-            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: GRAY, fontSize: 16 }}>
-              No data yet — check back soon
-            </div>
-          ) : (
-            videos.slice(0, 10).map((v, i) => (
-              <div
-                key={v.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '14px 36px',
-                  borderBottom: `1px solid ${DIVIDER}`,
-                  background: i === 0 ? CARD : BG,
-                }}
-              >
-                {/* Rank */}
-                <div
-                  style={{
-                    width: 52,
-                    fontSize: i === 0 ? 32 : 24,
-                    fontWeight: 700,
-                    color: i === 0 ? BRAND : WHITE,
-                    lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  {v.rank ?? i + 1}
-                </div>
-
-                {/* Title + channel */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, paddingRight: 16 }}>
-                  <span
-                    style={{
-                      fontSize: i === 0 ? 15 : 14,
-                      fontWeight: 700,
-                      color: WHITE,
-                      lineHeight: 1.3,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.3,
-                    }}
-                  >
-                    {truncate(v.title, 58)}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 400, color: GRAY }}>
-                    {truncate(v.channel_title, 40)}
-                  </span>
-                </div>
-
-                {/* Views */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                  <span
-                    style={{
-                      fontSize: i === 0 ? 18 : 16,
-                      fontWeight: 700,
-                      color: i === 0 ? BRAND : WHITE,
-                    }}
-                  >
-                    {fmtViews(v.view_count)}
-                  </span>
-                  <span style={{ fontSize: 10, color: GRAY, letterSpacing: 0.5 }}>VIEWS</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '10px 36px',
-            background: CARD,
-            borderTop: `1px solid ${DIVIDER}`,
-          }}
-        >
-          <span style={{ fontSize: 11, color: GRAY }}>mostviewed.today</span>
-          <span style={{ fontSize: 11, color: GRAY }}>Data refreshed every 30 minutes · YouTube trending chart</span>
-        </div>
-      </div>
-    ),
-    {
-      width: 800,
-      height: 1040,
-      fonts: fontConfig,
+  return new Response(svg, {
+    headers: {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=300, s-maxage=300',
     },
-  );
+  });
 }
