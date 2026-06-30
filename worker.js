@@ -35,7 +35,10 @@ export default {
         return new Response('OK', { status: 200 });
       }
       console.log(`[Scheduled] Routing ${event.cron} -> ${apiEndpoint}`);
-      
+
+      // Heartbeat key — strip the leading /api/ for compact storage.
+      const heartbeatJob = apiEndpoint.replace(/^\/api\//, '');
+
       // Create a synthetic request to the appropriate API endpoint
       const url = new URL(`https://mostviewed.today${apiEndpoint}`);
       const request = new Request(url, {
@@ -48,16 +51,47 @@ export default {
         }
       });
 
-      // Call your Next.js API endpoint
-      const response = await handler.fetch(request, env, ctx);
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`[Scheduled] Cron job completed successfully for ${apiEndpoint}:`, result);
-      } else {
-        console.error(`[Scheduled] Cron job failed for ${apiEndpoint}:`, response.status, response.statusText);
+      let response;
+      let runErr = null;
+      try {
+        response = await handler.fetch(request, env, ctx);
+        if (response.ok) {
+          console.log(`[Scheduled] Cron job completed for ${apiEndpoint}: ${response.status}`);
+        } else {
+          runErr = `${response.status} ${response.statusText}`;
+          console.error(`[Scheduled] Cron job failed for ${apiEndpoint}:`, runErr);
+        }
+      } catch (err) {
+        runErr = err?.message || String(err);
+        console.error(`[Scheduled] Cron job threw for ${apiEndpoint}:`, runErr);
       }
-      
+
+      // Wall-clock heartbeat write — keeps the watchdog independent of the
+      // bucketed video_rank_history.captured_at. Failures here are swallowed
+      // so a DB hiccup doesn't mask the original cron outcome.
+      if (env.DB) {
+        const nowIso = new Date().toISOString();
+        const ok = runErr == null;
+        try {
+          await env.DB.prepare(`
+            INSERT INTO cron_heartbeats (job, last_run_at, last_ok_at, last_status, last_error, cron_pattern)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(job) DO UPDATE SET
+              last_run_at = excluded.last_run_at,
+              last_ok_at = CASE WHEN excluded.last_status = 'ok' THEN excluded.last_ok_at ELSE cron_heartbeats.last_ok_at END,
+              last_status = excluded.last_status,
+              last_error = excluded.last_error,
+              cron_pattern = excluded.cron_pattern
+          `).bind(
+            heartbeatJob, nowIso, ok ? nowIso : null,
+            ok ? 'ok' : 'error', runErr, event.cron
+          ).run();
+        } catch (hbErr) {
+          console.error(`[Scheduled] heartbeat write failed for ${heartbeatJob}:`, hbErr);
+        }
+      }
+
+      if (runErr && !response) throw new Error(runErr);
       return response;
     } catch (error) {
       console.error('[Scheduled] Cron job error:', error);

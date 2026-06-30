@@ -18,41 +18,21 @@ import { sendOpsAlert } from '@/lib/ops-alert';
 const NOW = () => Date.now();
 const MIN = 60_000;
 
-// All cron heartbeats use video_rank_history (writes happen inline in each
-// cron via RollupService.recordChartAndRefresh). It's the cheapest authoritative
-// "did this cron complete a successful chart fetch" signal — no full-table scan.
+// Wall-clock heartbeats from cron_heartbeats. worker.js writes one row per
+// cron tick with the real ISO timestamp, decoupling the watchdog from the
+// bucketed captured_at on video_rank_history (which lags by up to 30 min and
+// caused false-positive shorts-cron alerts at the 40 min threshold).
+//
+// Thresholds = cron interval + slack. No bucket-lag headroom needed anymore.
 const CHECKS = [
-  {
-    name: 'videos cron',
-    sql: `SELECT MAX(captured_at) AS t FROM video_rank_history WHERE chart = 'global:videos'`,
-    maxAgeMs: 40 * MIN,                     // cron runs every 30 min, allow 10 min slack
-    title: 'videos cron stale',
-  },
-  {
-    name: 'shorts cron',
-    sql: `SELECT MAX(captured_at) AS t FROM video_rank_history WHERE chart = 'global:shorts'`,
-    maxAgeMs: 40 * MIN,
-    title: 'shorts cron stale',
-  },
-  {
-    name: 'countries cron',
-    sql: `SELECT MAX(captured_at) AS t FROM video_rank_history WHERE chart LIKE 'country:%:videos'`,
-    maxAgeMs: 75 * MIN,                     // cron runs hourly
-    title: 'countries cron stale',
-  },
-  {
-    name: 'creators cron',
-    sql: `SELECT MAX(updated_at) AS t FROM creators`,
-    maxAgeMs: 13 * 60 * MIN,                // cron runs every 12h
-    title: 'creators cron stale',
-  },
-  {
-    name: 'newsletter send',
-    sql: `SELECT MAX(sent_at) AS t FROM newsletter_sends`,
-    maxAgeMs: 26 * 60 * MIN,                // daily cron, allow 2h slack
-    title: 'newsletter send stale',
-    optional: true,                         // table may not exist yet
-  },
+  { name: 'videos cron',    job: 'scheduled/videos',    maxAgeMs: 40 * MIN,      title: 'videos cron stale' },
+  { name: 'shorts cron',    job: 'scheduled/shorts',    maxAgeMs: 40 * MIN,      title: 'shorts cron stale' },
+  { name: 'countries cron', job: 'scheduled/countries', maxAgeMs: 75 * MIN,      title: 'countries cron stale' },
+  { name: 'creators cron',  job: 'scheduled',           maxAgeMs: 13 * 60 * MIN, title: 'creators cron stale' },
+  { name: 'breakouts detect',  job: 'scheduled/detect-breakouts',  maxAgeMs: 45 * MIN, title: 'detect-breakouts cron stale' },
+  { name: 'breakouts refresh', job: 'scheduled/refresh-breakouts', maxAgeMs: 45 * MIN, title: 'refresh-breakouts cron stale' },
+  { name: 'daily rollups',  job: 'scheduled/daily-rollups', maxAgeMs: 25 * 60 * MIN, title: 'daily-rollups cron stale' },
+  { name: 'newsletter send', job: 'newsletter/send-daily', maxAgeMs: 26 * 60 * MIN, title: 'newsletter send stale' },
 ];
 
 export async function POST(request) {
@@ -85,34 +65,51 @@ async function handle(request) {
 
   for (const check of CHECKS) {
     try {
-      const row = await env.DB.prepare(check.sql).first();
-      const last = row?.t ? Date.parse(row.t) : null;
-      const ageMs = last ? now - last : Infinity;
-      const stale = ageMs > check.maxAgeMs;
-      findings.push({ name: check.name, last: row?.t ?? null, ageMin: Math.round(ageMs / MIN), stale });
+      const row = await env.DB.prepare(
+        `SELECT last_run_at, last_ok_at, last_status, last_error
+         FROM cron_heartbeats WHERE job = ?`
+      ).bind(check.job).first();
 
-      if (stale && !dry) {
+      // No heartbeat yet = cron hasn't ticked since the heartbeat layer
+      // shipped. Don't alert — wait for the first real signal.
+      if (!row) {
+        findings.push({ name: check.name, status: 'no_heartbeat_yet' });
+        continue;
+      }
+
+      const lastOk = row.last_ok_at ? Date.parse(row.last_ok_at) : null;
+      const ageMs = lastOk ? now - lastOk : Infinity;
+      const stale = ageMs > check.maxAgeMs;
+      const lastErr = row.last_status === 'error';
+
+      findings.push({
+        name: check.name,
+        last_ok_at: row.last_ok_at,
+        last_run_at: row.last_run_at,
+        last_status: row.last_status,
+        ageMin: Math.round(ageMs / MIN),
+        stale,
+        last_error: row.last_error,
+      });
+
+      if ((stale || lastErr) && !dry) {
+        const lines = [];
+        if (stale) {
+          lines.push(`Last successful run: ${row.last_ok_at ?? '(never)'} (~${Math.round(ageMs / MIN)} min ago)`);
+          lines.push(`Threshold: ${Math.round(check.maxAgeMs / MIN)} min`);
+        }
+        if (lastErr) {
+          lines.push(`Most recent attempt errored at ${row.last_run_at}:`);
+          lines.push(row.last_error ?? '(no error detail)');
+        }
         await sendOpsAlert(env, {
-          title: check.title,
-          lines: [
-            `No write within the expected window.`,
-            `Last write: ${row?.t ?? '(never)'} (~${Math.round(ageMs / MIN)} min ago)`,
-            `Threshold: ${Math.round(check.maxAgeMs / MIN)} min`,
-          ],
-          context: {
-            check: check.name,
-            host: url.host || 'mostviewed.today',
-          },
+          title: stale ? check.title : `${check.name} attempt errored`,
+          lines,
+          context: { check: check.name, host: url.host || 'mostviewed.today' },
         });
       }
     } catch (err) {
       const msg = err?.message || String(err);
-      // "no such table" on an optional check just means we haven't built that
-      // surface yet — quietly skip rather than paging the user.
-      if (check.optional && /no such table/i.test(msg)) {
-        findings.push({ name: check.name, skipped: 'table not present' });
-        continue;
-      }
       findings.push({ name: check.name, error: msg });
       if (!dry) {
         await sendOpsAlert(env, {
