@@ -96,13 +96,15 @@ function renderSvg(config, videos, weekDate) {
   <!-- Header (brand orange) -->
   <rect x="0" y="0" width="${W}" height="${HEADER_H}" fill="${BRAND}"/>
 
-  <!-- Logo: 3 ascending bars in white -->
-  <g transform="translate(${ROW_PADDING_X}, 28)">
-    <rect x="0"  y="20" width="7" height="14" rx="1.5" fill="${HEADER_FG}"/>
-    <rect x="11" y="11" width="7" height="23" rx="1.5" fill="${HEADER_FG}"/>
-    <rect x="22" y="0"  width="7" height="34" rx="1.5" fill="${HEADER_FG}"/>
+  <!-- Logo: mvt-icon.svg inlined (5 bars), scaled to ~40px tall -->
+  <g transform="translate(${ROW_PADDING_X}, 26) scale(0.225)">
+    <path d="M44 0H12C5.37258 0 0 4.67703 0 10.4464V184.554C0 190.323 5.37258 195 12 195H44C50.6274 195 56 190.323 56 184.554V10.4464C56 4.67703 50.6274 0 44 0Z" fill="${HEADER_FG}"/>
+    <path d="M343 0H311C304.373 0 299 4.67703 299 10.4464V184.554C299 190.323 304.373 195 311 195H343C349.627 195 355 190.323 355 184.554V10.4464C355 4.67703 349.627 0 343 0Z" fill="${HEADER_FG}"/>
+    <path opacity="0.55" d="M119 71H87C80.3726 71 75 75.6264 75 81.3333V184.667C75 190.374 80.3726 195 87 195H119C125.627 195 131 190.374 131 184.667V81.3333C131 75.6264 125.627 71 119 71Z" fill="${HEADER_FG}"/>
+    <path opacity="0.4" d="M193.214 115H161.786C155.277 115 150 119.477 150 125V185C150 190.523 155.277 195 161.786 195H193.214C199.723 195 205 190.523 205 185V125C205 119.477 199.723 115 193.214 115Z" fill="${HEADER_FG}"/>
+    <path opacity="0.55" d="M268 71H236C229.373 71 224 75.6264 224 81.3333V184.667C224 190.374 229.373 195 236 195H268C274.627 195 280 190.374 280 184.667V81.3333C280 75.6264 274.627 71 268 71Z" fill="${HEADER_FG}"/>
   </g>
-  <text x="${ROW_PADDING_X + 42}" y="55" font-size="22" font-weight="800" fill="${HEADER_FG}" letter-spacing="-0.4">mostviewed<tspan font-weight="400" fill-opacity="0.85">.today</tspan></text>
+  <text x="${ROW_PADDING_X + 92}" y="55" font-size="22" font-weight="800" fill="${HEADER_FG}" letter-spacing="-0.4">mostviewed<tspan font-weight="400" fill-opacity="0.85">.today</tspan></text>
 
   <!-- Chart dated -->
   <text x="${W - ROW_PADDING_X}" y="38" font-size="10" font-weight="500" fill="${HEADER_FG}" fill-opacity="0.75" letter-spacing="1.5" text-anchor="end">CHART DATED</text>
