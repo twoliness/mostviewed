@@ -1,7 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseService } from '@/lib/database';
-import { MVT_ICON_BASE64 } from '@/lib/mvt-icon-base64';
-
 export const dynamic = 'force-dynamic';
 
 const CHART_CONFIG = {
@@ -81,7 +79,6 @@ function renderSvg(config, videos, weekDate) {
     ? `<text x="${W / 2}" y="${HEADER_H + COLHEADER_H + 200}" font-size="16" fill="${GRAY}" text-anchor="middle">No data yet — check back soon</text>`
     : videos.slice(0, 10).map(renderRow).join('');
 
-  const logoDataUrl = `data:image/png;base64,${MVT_ICON_BASE64}`;
 
   // Inter font is loaded via @import — works in browsers that have outbound
   // network access. Falls back gracefully to Helvetica/Arial otherwise.
@@ -99,9 +96,13 @@ function renderSvg(config, videos, weekDate) {
   <!-- Header (brand orange) -->
   <rect x="0" y="0" width="${W}" height="${HEADER_H}" fill="${BRAND}"/>
 
-  <!-- Logo (mvt-icon.png embedded) + wordmark -->
-  <image href="${logoDataUrl}" xlink:href="${logoDataUrl}" x="${ROW_PADDING_X}" y="22" width="40" height="40"/>
-  <text x="${ROW_PADDING_X + 50}" y="50" font-size="20" font-weight="800" fill="${HEADER_FG}" letter-spacing="-0.3">mostviewed<tspan font-weight="400" fill-opacity="0.85">.today</tspan></text>
+  <!-- Logo: 3 ascending bars in white -->
+  <g transform="translate(${ROW_PADDING_X}, 28)">
+    <rect x="0"  y="20" width="7" height="14" rx="1.5" fill="${HEADER_FG}"/>
+    <rect x="11" y="11" width="7" height="23" rx="1.5" fill="${HEADER_FG}"/>
+    <rect x="22" y="0"  width="7" height="34" rx="1.5" fill="${HEADER_FG}"/>
+  </g>
+  <text x="${ROW_PADDING_X + 42}" y="55" font-size="22" font-weight="800" fill="${HEADER_FG}" letter-spacing="-0.4">mostviewed<tspan font-weight="400" fill-opacity="0.85">.today</tspan></text>
 
   <!-- Chart dated -->
   <text x="${W - ROW_PADDING_X}" y="38" font-size="10" font-weight="500" fill="${HEADER_FG}" fill-opacity="0.75" letter-spacing="1.5" text-anchor="end">CHART DATED</text>
