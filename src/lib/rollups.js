@@ -182,8 +182,12 @@ function buildInsertStmt(db, x) {
     x.chart,
     x.velocity,
     x.velocity != null ? x.capturedAt : null,
-    x.engagement,        // day1 == now on first sighting
-    x.engagement,        // week1 stays a placeholder until we have a week of data
+    // day1 and week1 stay null until the video crosses 24h / 168h of age —
+    // the UPDATE path fills them in (see buildUpdateStmt). Pre-filling here
+    // poisons the column as "engagement at first sighting" instead of the
+    // intended time-anchored snapshot.
+    null,
+    null,
     x.engagement,
   );
 }

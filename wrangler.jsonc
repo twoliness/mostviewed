@@ -42,7 +42,8 @@
 			"2,32 * * * *",    // Breakout detection at :02 and :32 (2 min after video collection)
 			"17,47 * * * *",   // Breakout Layer 2 refresh at :17 and :47 (1 YT API unit/run)
 			"20 9 * * *",      // Daily social posts → Telegram at 09:20 UTC (5:20 AM ET)
-			"0 10 * * 1"       // Weekly chart images → Telegram on Mondays at 10:00 UTC
+			"0 10 * * 1",      // Weekly chart images → Telegram on Mondays at 10:00 UTC
+			"*/15 * * * *"     // Ops watchdog — Telegram alert on cron staleness / API errors
 		]
 	},
 	"send_email": [

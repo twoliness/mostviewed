@@ -30,19 +30,35 @@ Going forward (from 2026-06-26), rank is captured live by Phase 2 code into `vid
 
 After 2026-04-15, captured_at is bucketed to 30-min, so multiple charts share a captured_at — id ordering still works but boundary detection is harder. Reconstruction for the bucketed era is deferred.
 
-### Tiered approach (Tier 1 shipped, 2/3 deferred)
+### Tiered approach
 
-| Tier | Charts | Method | Confidence | Status |
-|---|---|---|---|---|
-| 1 | `global:videos`, `global:shorts` | First captured_at per cron run | ~99% | **Shipped** |
-| 2 | `category:N:*` | Majority `category_id` + sequence | ~80% | Deferred |
-| 3 | `country:X:*` | Sequence within :05 cron run | ~60% | Deferred |
+| Tier | Charts | Era | Method | Confidence | Status |
+|---|---|---|---|---|---|
+| 1 | `global:videos`, `global:shorts` | pre-bucket (< 2026-04-15) | First captured_at per cron run | ~99% | **Shipped** |
+| 1b | `global:videos` only | bucketed (2026-04-15 → 2026-06-27) | Category-dominance sliding window | ~85% | **Shipped 2026-06-30** |
+| 2 | `category:N:*` | both | Majority `category_id` + sequence | ~80% | Deferred |
+| 3 | `country:X:*` | both | Sequence within :05 cron run | ~60% | Deferred |
 
 ### Tier 1 calibration (real-data thresholds, not intuition)
 
 - `MIN_GLOBAL_SIZE = 20`. Real globals are typically 80+, but smaller batches happen.
 - `MIN_DISTINCT_CATS = 3`. Real globals only have 4-6 distinct categories — music + gaming dominate trending. Started at 10, rejected everything.
 - **Do NOT require uniform `is_short`**. Earliest era (pre videos/shorts cron split) returned mixed shorts+long-form in a single ranked chart fetch. The split into separate :00/:30 (videos) and :15/:45 (shorts) crons happened later.
+
+### Tier 1b — bucketed-era boundary detection
+
+In the bucketed era the videos cron at :00, countries cron at :05, and shorts cron at :15 all bucket to the same captured_at, so multiple charts share a single timestamp. Within that timestamp, autoincrement `video_stats.id` ASC still preserves chronological insert order — videos cron is first. We detect global→category boundary by a 20-row category-diversity sliding window: when any one category occupies ≥70% of the window, we're inside the first category fetch; cut global there.
+
+- `WINDOW = 20`, `DOMINANCE_DEFAULT = 0.7`, `MIN_GLOBAL_SIZE_DEFAULT = 20`, `MIN_DISTINCT_CATS_DEFAULT = 3`.
+- Endpoint accepts overrides via `?dominance=`, `?minSize=`, `?minCats=` for ranges where the strict defaults reject too aggressively.
+- SQL filter `WHERE captured_at LIKE '%T__:00:00.000Z' OR captured_at LIKE '%T__:30:00.000Z'` is required to skip ms-precision noise (stale-video refresh path still writes non-bucketed captured_at).
+- Auto-loop mode (`?auto=1`) runs batches inside one HTTP call up to a 25s budget; loop pagination across calls is needed beyond that.
+- **Critical limitation**: global:shorts and country charts are NOT recoverable in the bucketed era. The countries cron interleaves between the videos/shorts crons inside one bucket and the signal can't be separated cleanly. Treat the recovered chart as **US `mostPopular` head**, not literal global.
+- **May 17–28 was a structural Gaming lockout** in US trending — ~94% of buckets reject under default knobs; aggressive knobs (`dominance=0.95, minSize=10, minCats=2`) recover ~54% as a top-25-non-Gaming slice. This is itself a publishable finding, not a data defect.
+
+### Q2 backfill outcome (Apr 15 → Jun 27)
+
+Three passes with `INSERT OR IGNORE` dedupe → ~85k `video_rank_history` rows on `chart='global:videos'`. April: 38,905 rows / 933 buckets. May: 21,565 / 649. June: 74,617 / 1,327 (live capture from Jun 27 + dense backfill).
 
 ## Endpoints
 
@@ -55,9 +71,38 @@ GET /api/admin/reconstruct-ranks?cursor=&limit=2000&cutoff=2026-04-15T00:00:00.0
     Reconstructs global:videos / global:shorts rank rows for pre-bucket era.
     Resumable. Idempotent (INSERT OR IGNORE).
 
+GET /api/admin/reconstruct-ranks-bucketed?cursor=&limit=500&from=&until=&auto=1
+                                         &dominance=&minSize=&minCats=
+    Tier-1b reconstructor for the bucketed era (Apr 15 → Jun 27). global:videos
+    only. Resumable. Auto-loop. INSERT OR IGNORE. Logs each batch to
+    backfill_progress.
+
 GET /api/admin/refresh-peak-ranks?cursor=&limit=1000&onlyChanged=true
     Lifts MIN(rank) from video_rank_history into video_summary.peak_rank/_date/_chart.
     Use onlyChanged=false for full sweep after reconstruction completes.
+
+GET /api/admin/recompute-summary-stats?cursor=&limit=100&auto=1&all=1
+    Recomputes peak_velocity / peak_velocity_at / engagement_day1 /
+    engagement_week1 from raw video_stats per video. Q2 scope by default
+    (first_seen 2026-04-01 → 2026-07-01). CONCURRENCY=8 fan-out. ~25 videos/s.
+    Fixes both the pre-bucket velocity poisoning and the engagement INSERT bug.
+
+GET /api/admin/backfill-progress?job=&limit=50
+    Tail the backfill_progress log. Returns summary + recent batch rows.
+
+GET /api/admin/sanity-checks
+    Velocity distribution (with Q2 cut), engagement coverage by Q2 month,
+    rank coverage by month. No writes — pre-report verification.
+
+GET /api/admin/inspect-bucket?ts=<captured_at>
+    Read-only diagnostic for any bucketed captured_at. Returns row count,
+    category histogram, country histogram, id gaps, head40 rows.
+
+GET /api/ops/watchdog?dry=1&test=1
+    Cron `*/15 * * * *`. Checks freshness of videos/shorts/countries/creators
+    crons + newsletter via video_rank_history MAX(captured_at). Alerts to
+    Telegram via WATCHDOG_TELEGRAM_BOT_TOKEN / _CHAT_ID. ?dry=1 inspects
+    without alerting; ?test=1 sends a synthetic ping for delivery verification.
 
 POST /api/scheduled/daily-rollups
     Cron 25 3 * * *. Rebuilds creator_summary and country_daily_summary.
@@ -85,6 +130,7 @@ POST /api/scheduled/daily-rollups
 | `17,47 * * * *` | `/api/scheduled/refresh-breakouts` | breakout velocity refresh |
 | `20 9 * * *` | `/api/social/post` | daily Telegram social posts (Haiku → 4 posts) |
 | `0 10 * * 1` | `/api/social/weekly-charts` | Monday Billboard-style SVG charts to Telegram |
+| `*/15 * * * *` | `/api/ops/watchdog` | Telegram ops alerter (separate watchdog bot) |
 
 Routed by exact `event.cron` string in `worker.js` (not wall-clock minute), so crons that share a minute don't collide.
 
@@ -94,6 +140,36 @@ Two Telegram pipelines, both using the same `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHA
 
 - **Daily posts** — `/api/social/post` generates 4 text posts via Claude Haiku 4.5 (prompt-cached system prompt), sends each as a Telegram message. Runs `20 9 * * *`. See `src/lib/social-generator.js`.
 - **Weekly chart images** — `/api/social/weekly-charts` fetches 4 chart-card SVGs (global, music, entertainment, gaming) from `/api/chart-image/[chart]` and posts each to Telegram via `sendDocument` (not `sendPhoto` — see WASM note below). Runs `0 10 * * 1`. Captions list the top 5 in Markdown.
+
+## Ops watchdog (SHIPPED 2026-06-30)
+
+Cron `*/15 * * * *` → `/api/ops/watchdog`. Posts alerts via `src/lib/ops-alert.js` using **separate** `WATCHDOG_TELEGRAM_BOT_TOKEN` / `WATCHDOG_TELEGRAM_CHAT_ID` secrets so ops noise never lands in the social channel. Falls back to `TELEGRAM_*` if watchdog secrets are missing (for local).
+
+Checks freshness against `MAX(captured_at)` on `video_rank_history` (cheapest authoritative "did this cron complete a successful chart fetch" signal):
+- videos cron — `chart='global:videos'`, threshold 40 min
+- shorts cron — `chart='global:shorts'`, threshold 40 min
+- countries cron — `chart LIKE 'country:%:videos'`, threshold 75 min
+- creators cron — `MAX(updated_at) FROM creators`, threshold 13 hrs
+- newsletter — `MAX(sent_at) FROM newsletter_sends`, threshold 26 hrs (marked optional, skipped if table not present)
+
+Mode: every-occurrence, no dedup (a persistent failure produces 4 alerts/hr until fixed — user's explicit choice).
+
+**MarkdownV2 escape gotcha**: every value rendered into a `_..._` italic or `*..*` bold block must run through the `escape()` helper, including the trailing ISO timestamp. Hyphens in dates trigger `Bad Request: can't parse entities` 400s.
+
+**Open ops finding (active alert)**: creators cron last fired 2026-06-27 03:18 — appears broken since the rollups deploy that same day. Worth checking `/api/scheduled` route + worker.js routing.
+
+## Velocity poisoning + engagement INSERT bug (FIXED 2026-06-30)
+
+Pre-bucket `video_stats` had ms-precision near-duplicate captured_at rows. Without a min-delta floor, the velocity calc divides tiny view deltas by tiny time deltas and produces 100M+ views/hr absurdities. Top offenders reached 1.22B v/hr against videos with 375M lifetime views.
+
+`src/lib/rollups.js#computeVelocity` already applies a 10-min floor at write time. The damage is in legacy `video_summary.peak_velocity` values written before the floor was added.
+
+Separately, `src/lib/rollups.js#buildInsertStmt` was pre-filling `engagement_day1` and `engagement_week1` with the current snapshot at first sighting. The `??` chain in `buildUpdateStmt` then never replaced them because they were never null. So both columns were silently "engagement at first sighting," not "engagement at 24h / 168h."
+
+Fix:
+1. Patched INSERT to write `null, null, x.engagement` instead of `x.engagement, x.engagement, x.engagement`.
+2. Wrote `/api/admin/recompute-summary-stats` to walk `video_stats` per video, recompute peak_velocity with the 10-min floor, and snapshot engagement at the row closest to `first_seen + 24h` / `+ 168h` within ±6h tolerance.
+3. `CONCURRENCY=8` fan-out inside each batch → ~25 videos/s sustained against remote D1.
 
 ## Image generation on Cloudflare Workers
 

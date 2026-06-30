@@ -414,8 +414,8 @@ export default async function VideoDetailPage({ params }) {
             </ul>
           </section>
         ) : null}
-        <SeoFooter context="global" />
       </main>
+      <SeoFooter context="global" />
     </div>
   );
 }

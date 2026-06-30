@@ -26,6 +26,7 @@ export default {
         '17,47 * * * *': '/api/scheduled/refresh-breakouts',
         '20 9 * * *':    '/api/social/post',
         '0 10 * * 1':   '/api/social/weekly-charts',
+        '*/15 * * * *': '/api/ops/watchdog',
       };
 
       const apiEndpoint = cronRoutes[event.cron];
