@@ -81,8 +81,32 @@ POST /api/scheduled/daily-rollups
 | `10 */12 * * *` | `/api/scheduled` | creator profiles only (no video_stats) |
 | `0 14 * * *` | `/api/newsletter/send-daily` | newsletter |
 | `25 3 * * *` | `/api/scheduled/daily-rollups` | creator + country summaries |
+| `2,32 * * * *` | `/api/scheduled/detect-breakouts` | breakout_candidates upserts |
+| `17,47 * * * *` | `/api/scheduled/refresh-breakouts` | breakout velocity refresh |
+| `20 9 * * *` | `/api/social/post` | daily Telegram social posts (Haiku → 4 posts) |
+| `0 10 * * 1` | `/api/social/weekly-charts` | Monday Billboard-style SVG charts to Telegram |
 
 Routed by exact `event.cron` string in `worker.js` (not wall-clock minute), so crons that share a minute don't collide.
+
+## Social pipelines (SHIPPED 2026-06-30)
+
+Two Telegram pipelines, both using the same `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` Cloudflare secrets:
+
+- **Daily posts** — `/api/social/post` generates 4 text posts via Claude Haiku 4.5 (prompt-cached system prompt), sends each as a Telegram message. Runs `20 9 * * *`. See `src/lib/social-generator.js`.
+- **Weekly chart images** — `/api/social/weekly-charts` fetches 4 chart-card SVGs (global, music, entertainment, gaming) from `/api/chart-image/[chart]` and posts each to Telegram via `sendDocument` (not `sendPhoto` — see WASM note below). Runs `0 10 * * 1`. Captions list the top 5 in Markdown.
+
+## Image generation on Cloudflare Workers
+
+**Use pure SVG. Do not use satori/resvg-based libs.** Cloudflare Workers refuses runtime `WebAssembly.compile()` ("Wasm code generation disallowed by embedder"), and OpenNext's bundling pipeline does not statically include the wasm files that next/og, workers-og, and @cf-wasm/og depend on.
+
+- `next/og` — OpenNext rejects the `edge` runtime directive entirely.
+- `workers-og` / `@cf-wasm/og` — fail with the wasm-compile error or hang the Worker at runtime.
+
+`/api/chart-image/[chart]/route.js` hand-templates SVG as a string. Returns `image/svg+xml`. SVG is a real shareable image format — browsers render it, file managers preview it, Telegram accepts it via `sendDocument`. If PNG becomes a hard requirement, the realistic paths are Cloudflare Browser Rendering (headless Chrome binding) or an external screenshot service.
+
+**SVG attribute gotchas:**
+- SVG attributes are double-quoted; `font-family` values containing `"Helvetica Neue"` (with double quotes inside) break the parser. Use single-word fonts or escape inner quotes to `&apos;`.
+- Load Inter via `@import` in a `<style>` block inside `<defs>`; degrade to Helvetica/Arial for offline viewers.
 
 ## Next feature: Breakout discovery (pre-trending monetisation layer)
 
