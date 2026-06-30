@@ -52,7 +52,7 @@ function renderRow(v, i) {
   const isTop = i === 0;
   const rank = v.rank ?? i + 1;
   const y = HEADER_H + COLHEADER_H + i * ROW_H;
-  const fontFamily = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
+  const fontFamily = 'Helvetica, Arial, sans-serif';
 
   return `
     ${isTop ? `<rect x="0" y="${y}" width="${W}" height="${ROW_H}" fill="#141414"/>` : ''}
@@ -66,7 +66,7 @@ function renderRow(v, i) {
 }
 
 function renderSvg(config, videos, weekDate) {
-  const fontFamily = '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
+  const fontFamily = 'Helvetica, Arial, sans-serif';
 
   const rows = (videos.length === 0)
     ? `<text x="${W / 2}" y="${HEADER_H + COLHEADER_H + 200}" font-family="${fontFamily}" font-size="16" fill="#888888" text-anchor="middle">No data yet — check back soon</text>`
