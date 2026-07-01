@@ -282,58 +282,97 @@ export class DatabaseService {
    * Get category-specific leaderboard
    */
   async getCategoryLeaderboard(categoryId, limit = 10) {
-    const chart = `category:${categoryId}:videos`;
-    // YouTube's videoCategoryId=N fetch returns ~50-70% homogeneous results,
-    // so we over-fetch and filter by the actual videos.category_id. This stops
-    // cross-category leakage (e.g. MrBeast Entertainment videos surfacing on
-    // the Comedy leaderboard). The over-fetch headroom is generous so a
-    // monoculture-Gaming day still has enough to fill the leaderboard.
-    const chartVideosAll = await this._chartLeaderboard(chart, limit * 5);
-    const chartVideos = chartVideosAll.filter(v => v.category_id === categoryId).slice(0, limit);
-    if (chartVideos.length >= limit) return chartVideos;
-
-    // Supplement with category-matched videos by view count when chart is thin
-    const existing = chartVideos.map(v => `'${v.id}'`).join(',') || "''";
-    const need = limit - chartVideos.length;
-    const stmt = this.db.prepare(`
-      SELECT
-        v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
-        v.category_id, v.is_short,
-        m.view_count, m.captured_at,
-        NULL AS rank
-      FROM videos v
-      INNER JOIN mv_latest_video_stats m ON m.video_id = v.id
-      WHERE v.category_id = ? AND v.is_short = 0 AND v.id NOT IN (${existing})
-      ORDER BY m.view_count DESC
-      LIMIT ?
-    `);
-    const fill = (await stmt.bind(categoryId, need).all()).results;
-    return [...chartVideos, ...fill];
+    return this._categoryLeaderboardImpl(categoryId, limit, 0);
   }
 
   /**
    * Get category-specific leaderboard (includes both videos and shorts)
    */
-  async getCategoryLeaderboardCombined(categoryId, limit= 50) {
-    // Union of the two chart-rank leaderboards (videos + shorts). We interleave
-    // by rank so positions reflect each video's actual YouTube chart position
-    // within its respective chart. Same cross-category filter as above.
-    const [videos, shorts] = await Promise.all([
-      this._chartLeaderboard(`category:${categoryId}:videos`, limit * 5),
-      this._chartLeaderboard(`category:${categoryId}:shorts`, limit * 5),
-    ]);
-    return [...videos, ...shorts]
-      .filter(v => v.category_id === categoryId)
-      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
-      .slice(0, limit);
+  async getCategoryLeaderboardCombined(categoryId, limit = 50) {
+    return this._categoryLeaderboardImpl(categoryId, limit, null);
   }
 
   /**
    * Get category-specific shorts leaderboard
    */
-  async getCategoryShortsLeaderboard(categoryId, limit= 10) {
-    const all = await this._chartLeaderboard(`category:${categoryId}:shorts`, limit * 5);
-    return all.filter(v => v.category_id === categoryId).slice(0, limit);
+  async getCategoryShortsLeaderboard(categoryId, limit = 10) {
+    return this._categoryLeaderboardImpl(categoryId, limit, 1);
+  }
+
+  // Category leaderboards used to read `category:N:videos` from rank_history,
+  // filter by `videos.category_id`, and fall back to a lifetime-view supplement
+  // when the chart was thin. That supplement surfaced months-old MrBeast hits
+  // on Entertainment/Howto/Pets because YouTube's `videoCategoryId=N` fetch
+  // heavily mixes categories (Entertainment has near-zero true-category videos
+  // in its own chart fetch).
+  //
+  // New strategy:
+  //   1. "Currently trending" = appeared in ANY rank_history chart in the last
+  //      6 hours (~12 ticks). Picks up videos whether they landed on the
+  //      home-category chart, a different category's chart, or country charts.
+  //   2. Filter by `videos.category_id = ?` — true home category only.
+  //   3. Sort by today's `views_delta` from video_daily_stats. That matches
+  //      the "Views today" column label exactly. Lifetime view_count breaks
+  //      the tie for ordering, and is also returned as a separate field for
+  //      callers that want totals.
+  //
+  // isShort: 0 = videos only, 1 = shorts only, null = both.
+  async _categoryLeaderboardImpl(categoryId, limit, isShort) {
+    const trendingCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const dayStart = new Date();
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayStartIso = dayStart.toISOString();
+    const shortFilter = isShort === null ? '' : 'AND v.is_short = ?';
+
+    // Two-pass: SQL returns the trending category set with lifetime view_count.
+    // Then JS enriches with views_today via one bounded query using the
+    // (video_id, captured_at) index. Avoids a CTE-to-CTE join that D1 was
+    // rejecting, and each per-video MIN uses the covering index — fast.
+    const stmt = this.db.prepare(`
+      WITH trending AS (
+        SELECT video_id, MIN(rank) AS best_rank
+        FROM video_rank_history
+        WHERE captured_at >= ?
+        GROUP BY video_id
+      )
+      SELECT
+        v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
+        v.category_id, v.is_short,
+        m.view_count, m.captured_at,
+        t.best_rank AS rank
+      FROM videos v
+      INNER JOIN trending t ON t.video_id = v.id
+      LEFT JOIN mv_latest_video_stats m ON m.video_id = v.id
+      WHERE v.category_id = ? ${shortFilter}
+      ORDER BY m.view_count DESC
+      LIMIT ?
+    `);
+    const binds = isShort === null
+      ? [trendingCutoff, categoryId, limit * 3]
+      : [trendingCutoff, categoryId, isShort, limit * 3];
+    const rows = (await stmt.bind(...binds).all()).results;
+    if (rows.length === 0) return rows;
+
+    // Compute views_today for the shortlist. One query, all IDs in an IN list.
+    const ids = rows.map(r => r.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const startRes = await this.db.prepare(`
+      SELECT video_id, MIN(view_count) AS start_views
+      FROM video_stats
+      WHERE captured_at >= ? AND video_id IN (${placeholders})
+      GROUP BY video_id
+    `).bind(dayStartIso, ...ids).all();
+
+    const startByVideo = new Map();
+    for (const s of (startRes.results || [])) startByVideo.set(s.video_id, s.start_views);
+
+    const enriched = rows.map(r => {
+      const start = startByVideo.get(r.id);
+      const viewsToday = (start != null && r.view_count > start) ? r.view_count - start : null;
+      return { ...r, views_today: viewsToday };
+    });
+    enriched.sort((a, b) => (b.views_today ?? 0) - (a.views_today ?? 0) || b.view_count - a.view_count);
+    return enriched.slice(0, limit);
   }
 
   /**

@@ -122,7 +122,10 @@ export default function ModernChartRanking({
           const rank = index + 1;
           const badge = getCategoryBadge(video.category_id);
           const status = getStatus(rank);
-          const viewCount = Number(video?.[metricKey] || 0);
+          // Prefer views_today (from video_daily_stats.views_delta) when the
+          // API supplies it — matches the "Views today" column label. Falls
+          // back to lifetime view_count for legacy callers.
+          const viewCount = Number(video?.views_today ?? video?.[metricKey] ?? 0);
           const secondaryValue = secondaryMetricKey ? Number(video?.[secondaryMetricKey] || 0) : null;
 
           return (
