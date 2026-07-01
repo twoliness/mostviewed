@@ -84,8 +84,29 @@ GET /api/admin/refresh-peak-ranks?cursor=&limit=1000&onlyChanged=true
 GET /api/admin/recompute-summary-stats?cursor=&limit=100&auto=1&all=1
     Recomputes peak_velocity / peak_velocity_at / engagement_day1 /
     engagement_week1 from raw video_stats per video. Q2 scope by default
-    (first_seen 2026-04-01 → 2026-07-01). CONCURRENCY=8 fan-out. ~25 videos/s.
-    Fixes both the pre-bucket velocity poisoning and the engagement INSERT bug.
+    (first_seen 2026-04-01 → 2026-07-01). CONCURRENCY=8 fan-out via
+    Promise.allSettled per batch → ~25 videos/s. Now uses strict velocity
+    heuristics (see Velocity poisoning section below).
+
+GET /api/admin/lockout-analysis
+    Returns Chapter-5 data: reconstruct-ranks-bucketed batch stats for the
+    2026-05-17 → 2026-05-28 Gaming Lockout window, top-25 non-Gaming
+    survivors of the window, and Gaming category-share of top-40 for the
+    lockout vs rest of Q2. Read-only, no writes.
+
+GET /api/admin/q2-report-data
+    Returns Chapters 1-4, 6, 7 data for the Q2 report:
+    - format ledger (category × duration bucket, median peak/days, n≥30)
+    - Q2 champions (creators with ≥2 top-25 videos)
+    - fastest breakouts (peak_velocity < 20M cap)
+    - engagement holds by category (day1/week1/now medians, n≥50)
+    - weekly category rotation (top-25 share by week × category)
+    - Q2-close signals (chart holders + breakout candidates from last week)
+    Read-only, no writes.
+
+GET /api/admin/inspect-bucket?ts=<captured_at>
+    Read-only diagnostic for any bucketed captured_at. Returns row count,
+    category histogram, country histogram, id gaps, head40 rows.
 
 GET /api/admin/backfill-progress?job=&limit=50
     Tail the backfill_progress log. Returns summary + recent batch rows.
@@ -99,10 +120,11 @@ GET /api/admin/inspect-bucket?ts=<captured_at>
     category histogram, country histogram, id gaps, head40 rows.
 
 GET /api/ops/watchdog?dry=1&test=1
-    Cron `*/15 * * * *`. Checks freshness of videos/shorts/countries/creators
-    crons + newsletter via video_rank_history MAX(captured_at). Alerts to
-    Telegram via WATCHDOG_TELEGRAM_BOT_TOKEN / _CHAT_ID. ?dry=1 inspects
-    without alerting; ?test=1 sends a synthetic ping for delivery verification.
+    Cron `*/15 * * * *`. Checks freshness of every scheduled endpoint via
+    cron_heartbeats (real wall-clock last_ok_at, not bucketed captured_at).
+    Alerts to Telegram via WATCHDOG_TELEGRAM_BOT_TOKEN / _CHAT_ID.
+    ?dry=1 inspects without alerting; ?test=1 sends a synthetic ping for
+    delivery verification.
 
 POST /api/scheduled/daily-rollups
     Cron 25 3 * * *. Rebuilds creator_summary and country_daily_summary.
@@ -141,24 +163,29 @@ Two Telegram pipelines, both using the same `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHA
 - **Daily posts** — `/api/social/post` generates 4 text posts via Claude Haiku 4.5 (prompt-cached system prompt), sends each as a Telegram message. Runs `20 9 * * *`. See `src/lib/social-generator.js`.
 - **Weekly chart images** — `/api/social/weekly-charts` fetches 4 chart-card SVGs (global, music, entertainment, gaming) from `/api/chart-image/[chart]` and posts each to Telegram via `sendDocument` (not `sendPhoto` — see WASM note below). Runs `0 10 * * 1`. Captions list the top 5 in Markdown.
 
-## Ops watchdog (SHIPPED 2026-06-30)
+## Ops watchdog (SHIPPED 2026-06-30, heartbeat table 2026-07-01)
 
 Cron `*/15 * * * *` → `/api/ops/watchdog`. Posts alerts via `src/lib/ops-alert.js` using **separate** `WATCHDOG_TELEGRAM_BOT_TOKEN` / `WATCHDOG_TELEGRAM_CHAT_ID` secrets so ops noise never lands in the social channel. Falls back to `TELEGRAM_*` if watchdog secrets are missing (for local).
 
-Checks freshness against `MAX(captured_at)` on `video_rank_history` (cheapest authoritative "did this cron complete a successful chart fetch" signal):
-- videos cron — `chart='global:videos'`, threshold 40 min
-- shorts cron — `chart='global:shorts'`, threshold 40 min
-- countries cron — `chart LIKE 'country:%:videos'`, threshold 75 min
-- creators cron — `MAX(updated_at) FROM creators`, threshold 13 hrs
-- newsletter — `MAX(sent_at) FROM newsletter_sends`, threshold 26 hrs (marked optional, skipped if table not present)
+**2026-07-01 rewrite: cron_heartbeats table.** Original impl read `MAX(captured_at)` on `video_rank_history` — but captured_at is bucketed to 30 min, lagging wall clock by up to 30 min. Shorts cron at :45 writes captured_at=:30, so just before the next tick MAX(captured_at) is 45 min old at the 40 min threshold — false-positive baked in. New impl uses a heartbeat table upserted by `worker.js` on every cron dispatch (wraps the response, so both success and failure paths are captured). Watchdog reads `last_ok_at` (real ISO timestamp) and alerts on `now - last_ok_at > threshold` OR `last_status='error'`. Missing rows treated as `no_heartbeat_yet` so the post-deploy gap doesn't false-alarm during the transition.
+
+Checks (thresholds = cron interval + slack, no bucket-lag headroom):
+- videos cron (`scheduled/videos`) — 40 min
+- shorts cron (`scheduled/shorts`) — 40 min
+- countries cron (`scheduled/countries`) — 75 min
+- creators cron (`scheduled`) — 13 hrs
+- detect-breakouts (`scheduled/detect-breakouts`) — 45 min
+- refresh-breakouts (`scheduled/refresh-breakouts`) — 45 min
+- daily rollups (`scheduled/daily-rollups`) — 25 hrs
+- newsletter (`newsletter/send-daily`) — 26 hrs
 
 Mode: every-occurrence, no dedup (a persistent failure produces 4 alerts/hr until fixed — user's explicit choice).
 
 **MarkdownV2 escape gotcha**: every value rendered into a `_..._` italic or `*..*` bold block must run through the `escape()` helper, including the trailing ISO timestamp. Hyphens in dates trigger `Bad Request: can't parse entities` 400s.
 
-**Open ops finding (active alert)**: creators cron last fired 2026-06-27 03:18 — appears broken since the rollups deploy that same day. Worth checking `/api/scheduled` route + worker.js routing.
+**Creators cron bug FIXED 2026-06-30**: `src/app/api/scheduled/route.js:245` had `currentMinute === 0 && currentHour % 12 === 0` to decide creators vs videos collection. But the cron fires at `10 */12 * * *` (:10, not :00), so the check was always false and every creator tick silently ran video collection instead. Was masked before worker.js switched to exact-cron-string routing (Jun 27); after routing fix, the in-handler wall-clock check became the active bug. Fix: worker.js now routes this endpoint only from the 12h cron, so always run creator collection; dropped the legacy fallback and the unused `triggerVideoCollection` function.
 
-## Velocity poisoning + engagement INSERT bug (FIXED 2026-06-30)
+## Velocity poisoning + engagement INSERT bug (FIXED 2026-06-30 → strict recompute 2026-07-01)
 
 Pre-bucket `video_stats` had ms-precision near-duplicate captured_at rows. Without a min-delta floor, the velocity calc divides tiny view deltas by tiny time deltas and produces 100M+ views/hr absurdities. Top offenders reached 1.22B v/hr against videos with 375M lifetime views.
 
@@ -166,10 +193,56 @@ Pre-bucket `video_stats` had ms-precision near-duplicate captured_at rows. Witho
 
 Separately, `src/lib/rollups.js#buildInsertStmt` was pre-filling `engagement_day1` and `engagement_week1` with the current snapshot at first sighting. The `??` chain in `buildUpdateStmt` then never replaced them because they were never null. So both columns were silently "engagement at first sighting," not "engagement at 24h / 168h."
 
-Fix:
+Fix (round 1, 2026-06-30):
 1. Patched INSERT to write `null, null, x.engagement` instead of `x.engagement, x.engagement, x.engagement`.
 2. Wrote `/api/admin/recompute-summary-stats` to walk `video_stats` per video, recompute peak_velocity with the 10-min floor, and snapshot engagement at the row closest to `first_seen + 24h` / `+ 168h` within ±6h tolerance.
-3. `CONCURRENCY=8` fan-out inside each batch → ~25 videos/s sustained against remote D1.
+3. `CONCURRENCY=8` Promise.allSettled fan-out inside each batch → ~25 videos/s sustained against remote D1.
+
+**Round-1 caught pair-pollution but not delta-pollution.** After the first recompute, 315 Q2 videos still had peak_velocity > 20M v/hr. The 10-min floor skips ms-duplicated pairs, but pairs correctly spaced 30 min apart with implausibly huge view deltas (YouTube API hiccup snapshots) still pass. MrBeast's "Spiciest Ramen" showed 296M v/hr = 148M views in 30 min, when the video's lifetime is 178M total.
+
+**Round 2 — strict recompute (2026-07-01)** added two more filters to `/api/admin/recompute-summary-stats`:
+- **`ABSOLUTE_VELOCITY_CEIL = 10M v/hr`** — real biggest-ever YouTube launches top around 5M v/hr globally. Skip pairs whose computed velocity exceeds 10M as sanity bound.
+- **`RELATIVE_DELTA_CEIL = 0.25`** applied when `prev.view_count > 100k` — skip pairs where view delta exceeds 25% of previous view count. Catches "impossible jump" snapshots without penalizing fresh-launch growth (videos < 100k views have no filter).
+
+After strict recompute: **0 videos > 20M v/hr** (was 315). Top Q2 velocity is 9.7M (LAIKA Wildwood trailer) — matches real-world premiere physics.
+
+## Category leaderboard architecture (REFACTORED 2026-07-01)
+
+Old flow read `category:N:videos` chart from rank_history, filtered by `videos.category_id`, and fell through to a lifetime-view supplement (`ORDER BY view_count DESC`) when the chart was thin. For Entertainment (cat 24), the supplement was the only signal because YouTube's `videoCategoryId=24` fetch has near-zero true-cat-24 videos. Result: leaderboard showed months-old MrBeast hits (Apr 30 → Jun 30 captured_at, lifetime view_count labeled "Views today").
+
+Audit of all 12 category leaderboards found: Entertainment/Howto/Pets 100% supplement contamination, Comedy/Film 90%, Sports/Autos partial, others clean. **Root cause is YouTube's `videoCategoryId=N` fetch returning ~50-70% cross-category videos** — the homogeneity filter discards cross-category leakage but for some categories almost nothing remains.
+
+**New strategy** in `src/lib/database.js#_categoryLeaderboardImpl`:
+1. **Trending** = appeared in ANY `rank_history` chart in the last 6 hrs. Picks up videos regardless of which chart YouTube surfaced them on (home cat, cross-cat, country).
+2. **Filter** by `videos.category_id` — true home category only.
+3. **`views_today` on-the-fly** = current view_count − MIN(view_count since 00:00 UTC today). Uses `idx_video_stats_video_captured` covering index. Bounded to trending set (~50-200 videos). Cannot use `video_daily_stats` because `daily-rollups` writes only yesterday's completed row (03:25 UTC); labeling yesterday's delta as "Views today" would be misleading.
+4. **Sort** by views_today DESC, tiebreak on lifetime view_count DESC.
+5. **No supplement.** Better to show a short honest leaderboard than a padded one with old videos.
+
+Two-pass SQL shape (JS enrichment) instead of CTE-to-CTE join, which D1 rejected. UI (`src/components/ModernChartRanking.jsx`) prefers `video.views_today` over `video[metricKey]` when present.
+
+## Video detail page fallback chart (FIXED 2026-07-01)
+
+Videos whose only rank_history rows landed on cross-category charts (e.g. MrBeast Entertainment videos peaking #1 on `category:23` Comedy + `category:26` Howto with 122 appearances each) used to render "Off chart / Peak Rank — / Days on chart 0" on their detail pages. Page only inspected `global:videos` + `category:<home>:videos`.
+
+Fix in `src/app/video/[slug]/page.js`: when both `globalStats` and `categoryStats` (home category) are null, fall back to `summary.peak_rank_chart` — the chart where the video actually peaked. `primary = globalStats || categoryStats || fallbackStats`. Same fallback threads through the rank-timeline path and the off-chart check.
+
+## Q2 report shipped (2026-07-01)
+
+**"YouTube US Trending Q2 2026: The Format Report"** — 7 chapters + front matter + pitch copy, ~13k words in `reports/q2-2026-us-trending/`. Priced at $99, 14-day refund. ICP: content strategists at agencies (highest budget, lowest friction, exact-fit data question).
+
+Every chapter is backed by a specific query against a persistent admin endpoint:
+- Chapter 5 (Gaming Lockout) — `/api/admin/lockout-analysis`
+- Chapters 1, 2, 3, 4, 6, 7 — `/api/admin/q2-report-data`
+
+Key findings the report defends with data:
+- **Gaming climbed 24% → 46% top-25 share across Q2** (Chapter 6). May 17–28 Gaming Lockout was the peak of a quarter-long rise, not an isolated event.
+- **10–30min People & Blogs long-form has best median peak rank** (Chapter 1) at rank 11. No Shorts format better than 12.5.
+- **Music has 44% engagement decay Day 1 → Now; Gaming has 3%** (Chapter 4). Opposite sponsor-pricing profiles.
+- **14 of 25 Q2 champion channels are Indian-market** (Chapter 2). US `mostPopular` chart is not what most agency briefs assume.
+- **MrBeast #2 on peak velocity but not on champions list** (Chapters 2, 3). Q2 MrBeast was one big hit, not multiple.
+
+Framing: **"US trending" not "global"** — because bucketed-era backfill recovered only `regionCode=US mostPopular`, not literal worldwide. Chapter 7 deliberately not a prediction chapter; closes with "The three questions Q3 will answer" (HYBE extend? Gaming stabilize? Detector base rates?) as forward hook without unfounded calls.
 
 ## Image generation on Cloudflare Workers
 

@@ -51,8 +51,11 @@ export class RollupService {
     const idList = rankedVideoIds;
     const placeholders = idList.map(() => '?').join(',');
 
-    // Pull: video metadata + current snapshot stats + immediately prior snapshot stats + existing summary.
-    const [videoRows, currStatsRows, prevStatsRows, existingRows] = await Promise.all([
+    // Pull: video metadata + current snapshot stats + existing summary.
+    // Previous snapshot is derived from existing.current_views + existing.last_seen
+    // (the summary row holds the pre-tick values until the UPDATE below overwrites
+    // them), eliminating an expensive video_stats scan per chart call.
+    const [videoRows, currStatsRows, existingRows] = await Promise.all([
       this.db.prepare(
         `SELECT id, channel_id, is_short, category_id FROM videos WHERE id IN (${placeholders})`
       ).bind(...idList).all(),
@@ -62,25 +65,12 @@ export class RollupService {
          WHERE captured_at = ? AND video_id IN (${placeholders})`
       ).bind(capturedAt, ...idList).all(),
       this.db.prepare(
-        // Most recent stat strictly before this capture. Subquery per row but
-        // bounded to N=ranked-list size, fine for ~100 rows.
-        `SELECT s.video_id, s.view_count, s.like_count, s.comment_count, s.captured_at
-         FROM video_stats s
-         INNER JOIN (
-           SELECT video_id, MAX(captured_at) AS captured_at
-           FROM video_stats
-           WHERE captured_at < ? AND video_id IN (${placeholders})
-           GROUP BY video_id
-         ) p ON p.video_id = s.video_id AND p.captured_at = s.captured_at`
-      ).bind(capturedAt, ...idList).all(),
-      this.db.prepare(
         `SELECT * FROM video_summary WHERE video_id IN (${placeholders})`
       ).bind(...idList).all(),
     ]);
 
     const videoById = indexBy(videoRows.results || [], 'id');
     const currById = indexBy(currStatsRows.results || [], 'video_id');
-    const prevById = indexBy(prevStatsRows.results || [], 'video_id');
     const existingById = indexBy(existingRows.results || [], 'video_id');
 
     const today = capturedAt.slice(0, 10); // YYYY-MM-DD
@@ -94,8 +84,11 @@ export class RollupService {
         // No metadata or no fresh stats row — collection upstream skipped this video.
         return;
       }
-      const prev = prevById[videoId];
       const existing = existingById[videoId];
+      // Use summary's pre-tick values as the previous snapshot for velocity.
+      const prev = existing
+        ? { view_count: existing.current_views, captured_at: existing.last_seen }
+        : null;
 
       const velocity = computeVelocity(curr, prev);
       const engagement = computeEngagement(curr);
