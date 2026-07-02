@@ -80,4 +80,4 @@ This is the mirror image of Gaming's Chapter 1 pattern: Music has high frequency
 
 ---
 
-*This is Chapter 3 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 3 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026*

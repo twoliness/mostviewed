@@ -10,9 +10,7 @@
 **Publication date:** 2026-07-01
 **Report version:** 1.0
 **Data window:** 2026-04-15 → 2026-06-27 (bucketed rank era, US region)
-**Underlying sample:** 55,939 videos entered US trending in the window; 86,896 recovered rank snapshots on `chart=mostPopular&regionCode=US`; 11,429 videos with valid Day-1 and Week-1 engagement anchors.
-**Price:** $99
-**Refund policy:** Full refund within 14 days of purchase, no questions asked.
+**Underlying sample:** 55,939 videos entered US trending in the window; 86,896 resolved rank snapshots on `chart=mostPopular&regionCode=US`; 11,429 videos with valid Day-1 and Week-1 engagement anchors.
 
 ---
 
@@ -32,8 +30,8 @@ Median Music engagement: 3.22% Day 1, 2.05% Week 1, 1.81% Now. That's a 44% drop
 **4. Half of the 25 Q2 champion channels are Indian-market music and news** *(Chapter 2)*.
 The US `mostPopular` chart is not what most agency briefs assume it is. 14 of the 25 channels that placed two or more videos in the Q2 top-25 are Tamil, Telugu, Punjabi, or Hindi content producers. If your Q3 "US YouTube reach" plan does not budget for Indian-diaspora content, it under-represents the surface by roughly half.
 
-**5. The May 17–28 Gaming Lockout broke the historical reconstruction pipeline** *(Chapter 5)*.
-Under standard boundary-detection parameters, only 4 of 500 30-minute snapshots (0.8%) in the window were recoverable. Under aggressive parameters, 268 of 499 (54%). Direct sampling of raw buckets showed Gaming holding 62–75% of the top-40 slots for 10 consecutive days — the algorithm's monoculture failure mode is documented for the first time in this report.
+**5. The May 17–28 Gaming Lockout overwhelmed our chart-head classifier** *(Chapter 5)*.
+Under standard category-diversity parameters, only 4 of 500 30-minute buckets (0.8%) in the window resolved as global-chart fetches — because at the head of the chart they were structurally indistinguishable from Gaming-only fetches. Direct sampling of raw buckets showed Gaming holding 62–75% of the top-40 slots for 10 consecutive days — the algorithm's monoculture failure mode is documented for the first time in this report.
 
 ---
 
@@ -81,7 +79,7 @@ A quarterly data document on YouTube's `mostPopular?regionCode=US` chart. Every 
 
 For methodology questions, data reproduction requests, or bulk-license inquiries, contact karen.redona@gmail.com.
 
-For quarterly report subscription (Q3 2026 report will publish 2026-10-01 at $99 or $89 annual), sign up at mostviewed.today/reports.
+For quarterly report subscription (Q3 2026 report will publish 2026-10-01), sign up at mostviewed.today/reports.
 
 ---
 

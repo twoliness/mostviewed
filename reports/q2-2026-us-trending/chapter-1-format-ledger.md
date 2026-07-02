@@ -90,4 +90,4 @@ If you build the quarterly content plan:
 
 ---
 
-*This is Chapter 1 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 1 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026*

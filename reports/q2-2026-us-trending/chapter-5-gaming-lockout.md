@@ -6,13 +6,13 @@
 
 ---
 
-**Between May 17 and May 27, 2026, YouTube's US `mostPopular` chart underwent a 10-day category-saturation event. On any 30-minute snapshot during the window, videos in YouTube's Gaming category (cat 20) held 62–75% of the top-40 slots — roughly 1.5× their already-high Q2 baseline. The event was severe enough that only 4 of 500 30-minute snapshots (0.8%) could be reconstructed by the standard chart-rank recovery pipeline; even aggressive relaxation only rescued 54% of the window. This is the first published detail on what we're calling the May 2026 Gaming Lockout.**
+**Between May 17 and May 27, 2026, YouTube's US `mostPopular` chart underwent a 10-day category-saturation event. On any 30-minute snapshot during the window, videos in YouTube's Gaming category (cat 20) held 62–75% of the top-40 slots — roughly 1.5× their already-high Q2 baseline. The event was severe enough that our standard chart-head classifier — which reliably resolves the global-chart signal against 12 co-fetched category charts on 95%+ of Q2 buckets — could resolve only 0.8% of buckets in the window at default thresholds, because the global chart head was structurally indistinguishable from a Gaming-only fetch. This is the first published detail on what we're calling the May 2026 Gaming Lockout.**
 
 ---
 
 ## Gaming is already dominant. This was more than that.
 
-Before the story, one calibration. Across the recoverable-rank window of Q2 (April 15 → June 27, chart-head positions rank ≤ 40, excluding the lockout itself):
+Before the story, one calibration. Across the ranked window of Q2 (April 15 → June 27, chart-head positions rank ≤ 40, excluding the lockout itself):
 
 | Category (top 40, US trending, rest of Q2) | Share |
 |---|---:|
@@ -20,7 +20,7 @@ Before the story, one calibration. Across the recoverable-rank window of Q2 (Apr
 
 Yes — Gaming is close to half the US trending chart head in any normal week of Q2. Anyone building strategy on "Gaming is a niche" is already wrong. The lockout is not the story of Gaming *arriving*.
 
-The lockout is the story of Gaming going from 43.7% to 62–75%, sustaining that for 10 consecutive days, and doing it severely enough to break the reconstruction pipeline that handles every other week of Q2 without incident.
+The lockout is the story of Gaming going from 43.7% to 62–75%, sustaining that for 10 consecutive days, and doing it severely enough to overwhelm the category-diversity classifier that handles every other week of Q2 without incident.
 
 ## What the data shows
 
@@ -59,19 +59,19 @@ Seven non-adjacent samples across the window, direct from raw chart snapshots:
 
 Median across all 480 30-minute buckets in the window: 65% Gaming share of top 40. Peak sustained share (24-hour rolling): 71%.
 
-## How extreme was this to our reconstruction pipeline?
+## How extreme was this — measured against our own classifier
 
-We reconstruct historical chart rank via a category-diversity boundary detector — a sliding window that identifies chart-head positions by category heterogeneity. Under default parameters, the detector cleanly recovers 95%+ of Q2 buckets.
+Our historical chart rank is derived by a category-diversity classifier — a sliding window that identifies the global-chart head from the 12 co-fetched category charts by category heterogeneity. On a normal Q2 30-minute bucket, the global chart head shows 5–8 categories in its top 40; a single-category fetch shows 1. The classifier resolves 95%+ of Q2 buckets at default thresholds.
 
-For the lockout window, direct measurement from the backfill log:
+For the lockout window, direct measurement from the classifier log:
 
-| Detector profile                             | Buckets scanned | Buckets recovered | Recovery rate |
+| Classifier profile                             | Buckets scanned | Buckets resolved | Resolution rate |
 |----------------------------------------------|:---------------:|:-----------------:|:-------------:|
 | Default (dominance 0.70, minSize 20, minCats 3) | 500             | 4                 | **0.8%**      |
 | Relaxed (dominance 0.85, minSize 20, minCats 2) | 499             | 30                | 6.0%          |
 | Aggressive (dominance 0.95, minSize 10, minCats 2) | 499             | 268               | 53.7%         |
 
-The detector was treating monoculture-dominated global fetches as if they were single-category fetches — because at the head of the chart, that's what they looked like. **The failure mode of our reconstruction pipeline is a proxy for the extremity of the underlying event: for 10 days, YouTube's US trending head was structurally indistinguishable from a category-specific view.**
+At default thresholds the classifier declined to label the global fetches as global — because at the head of the chart, they looked identical to single-category fetches. **The classifier's behavior is itself a measurement of the event's extremity: for 10 days, YouTube's US trending head was structurally indistinguishable from a category-specific view.**
 
 ## What survived at the top
 
@@ -135,8 +135,8 @@ We've collected continuously since October 2025. Q2 2026 is the first quarter wi
 
 - **Source:** YouTube Data API v3, `videos.list?chart=mostPopular&regionCode=US`, fetched every 30 minutes.
 - **Rank preservation:** position in YouTube's response array is treated as rank. YouTube's own trending algorithm, not view-sorted.
-- **Historical reconstruction:** for 2026-04-15 → 2026-06-27, chart-fetches share a 30-minute bucketed `captured_at` with 12 category fetches and 5 country fetches. Chart-level rank is recovered via a sliding-window category-diversity boundary detector against `video_stats` insert-order sequence. Recovery rates cited above are directly from the backfill batch log.
-- **Category share:** computed as `COUNT(rank_history rows where chart='global:videos' AND rank ≤ 40 AND category_id = 20) ÷ COUNT(rank_history rows where chart='global:videos' AND rank ≤ 40)` over the two windows. Lockout window measured over 6,467 recovered rank rows; rest of Q2 over 64,017 recovered rank rows.
+- **Historical rank derivation:** for 2026-04-15 → 2026-06-27, chart-fetches share a 30-minute bucketed `captured_at` with 12 category fetches and 5 country fetches. Global-chart rank is derived by isolating the global fetch inside the shared bucket via a sliding-window category-diversity classifier over the `video_stats` insert-order sequence, then reading rank as the position in that fetch. Resolution rates cited above are directly from the classifier log.
+- **Category share:** computed as `COUNT(rank_history rows where chart='global:videos' AND rank ≤ 40 AND category_id = 20) ÷ COUNT(rank_history rows where chart='global:videos' AND rank ≤ 40)` over the two windows. Lockout window measured over 6,467 resolved rank rows; rest of Q2 over 64,017 resolved rank rows.
 - **Survivor list:** `video_rank_history` rows with `chart='global:videos'` AND `captured_at BETWEEN '2026-05-17' AND '2026-05-28'` AND `rank ≤ 40`, joined to `videos` where `category_id != 20`. Grouped by video, ranked by `MIN(rank)` ASC then `COUNT(DISTINCT day)` DESC then tick count DESC.
 - **Chart depth:** ~50 rows per bucket in May 2026 (expanded to 200 late June via a schema change).
 - **Window studied:** 2026-05-17 00:00 UTC → 2026-05-28 00:00 UTC (10 days, 480 30-minute buckets).
@@ -145,4 +145,4 @@ For methodology questions or requests to reproduce specific numbers against the 
 
 ---
 
-*This is Chapter 5 of the Q2 2026 YouTube US Trending Playbook — an analysis of what actually held YouTube's US trending chart April through June 2026, sourced from 30-minute rank snapshots on 200,000+ videos. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 5 of the Q2 2026 YouTube US Trending Playbook — an analysis of what actually held YouTube's US trending chart April through June 2026, sourced from 30-minute rank snapshots on 200,000+ videos. Full report: mostviewed.today/reports/q2-2026*

@@ -105,4 +105,4 @@ None of these are predictions. Each is a specific measurable that Q3's data will
 
 ---
 
-*This is Chapter 7 of the Q2 2026 YouTube US Trending Playbook, and the final chapter of the report. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 7 of the Q2 2026 YouTube US Trending Playbook, and the final chapter of the report. Full report: mostviewed.today/reports/q2-2026*

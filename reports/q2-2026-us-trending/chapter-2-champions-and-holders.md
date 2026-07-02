@@ -87,4 +87,4 @@ Gaming, despite dominating chart *composition* (Chapter 6), has zero channels on
 
 ---
 
-*This is Chapter 2 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 2 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026*

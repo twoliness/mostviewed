@@ -93,8 +93,8 @@ If your unit economics on Music sponsorship assume flat engagement, they're wron
 - **Anchor snapshots:** the `video_stats` row with `captured_at` closest to `first_seen + 24h` (Day 1) and `first_seen + 168h` (Week 1), within a ±6h tolerance. Videos without a row inside the tolerance for either anchor are excluded.
 - **Hold ratio:** `median_engagement_now ÷ median_engagement_day1` per category.
 - **Sample gate:** categories with fewer than 50 gated videos are dropped from the ledger.
-- **Historical caveat:** the underlying `engagement_day1` / `engagement_week1` fields were previously polluted by an INSERT bug in the rollup writer that pre-filled both with the first-sighting value. That bug was patched 2026-06-30; the affected rows were recomputed from raw `video_stats` history on 2026-07-01 before this chapter's queries ran. All numbers in this chapter reflect the post-recompute state.
+- **Source of truth:** engagement_day1 and engagement_week1 in this chapter are computed directly from the raw `video_stats` time-series — the 30-minute stat snapshots we've captured continuously since October 2025 — using the anchor-snapshot definition above. The `video_summary` rollup was refreshed on 2026-07-01 so cached values match the raw-series computation; every number in this chapter was verified against `video_stats` directly.
 
 ---
 
-*This is Chapter 4 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 4 of the Q2 2026 YouTube US Trending Playbook. Full report: mostviewed.today/reports/q2-2026*

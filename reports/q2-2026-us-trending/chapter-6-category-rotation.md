@@ -81,4 +81,4 @@ If your Q3 plan involves categories in the "Other" bucket, you are playing a sma
 
 ---
 
-*This is Chapter 6 of the Q2 2026 YouTube US Trending Playbook. Chapter 5 covers the May 17–28 Gaming Lockout as its own event. Full report: mostviewed.today/reports/q2-2026 · $99*
+*This is Chapter 6 of the Q2 2026 YouTube US Trending Playbook. Chapter 5 covers the May 17–28 Gaming Lockout as its own event. Full report: mostviewed.today/reports/q2-2026*

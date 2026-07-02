@@ -12,8 +12,6 @@
 
 **Sourced from 30-minute rank snapshots on 200,000+ videos. Published on the day Q2 closed.**
 
-*$99. Full refund within 14 days.*
-
 **[Buy the Q2 2026 US Trending Report →]**
 
 ---
@@ -42,7 +40,7 @@ You know it's directional. You know it doesn't hold up if a client asks "what sp
 
 **Chapter 4 — Engagement Holds.** Median Day-1, Week-1, and Now engagement rates by category, over 11,429 videos. Answers "which formats keep their audience" — and directly changes sponsor pricing math on Music inventory.
 
-**Chapter 5 — The Gaming Lockout.** How YouTube's US trending chart underwent a 10-day category saturation event May 17–28, why our reconstruction pipeline caught it, and the 25 non-Gaming videos that held their positions through it. First publication of this event.
+**Chapter 5 — The Gaming Lockout.** How YouTube's US trending chart underwent a 10-day category saturation event May 17–28, how our chart-head classifier surfaced the event's extremity, and the 25 non-Gaming videos that held their positions through it. First publication of this event.
 
 **Chapter 6 — Category Rotation.** Weekly composition of the US trending top 25 by category across 11 weeks of Q2. Documents the Gaming climb from 24% to 46% share and the Music retreat from 46% to 33%.
 
@@ -89,19 +87,17 @@ Chart-composition analysis at 30-minute resolution over multi-month windows requ
 2. Rank order preserved per snapshot (most trackers discard rank in favor of view counts)
 3. Multi-month baseline (this needs ~9+ months of history to establish anomaly baselines)
 
-Most Viewed Today has collected continuously since October 2025. Q2 2026 is the first quarter with a full multi-month reconstruction window. No published analog exists.
+Most Viewed Today has collected continuously since October 2025. Q2 2026 is the first quarter with a full multi-month baseline. No published analog exists.
 
 ---
 
-### Section 6 — Pricing and guarantee
+### Section 6 — What you get
 
-**$99. One-time purchase. Full PDF + 7 markdown chapters + methodology data.**
-
-**Refund policy:** Full refund within 14 days. No questions asked. If the report doesn't earn its price on a first read, refund the price.
+**One-time purchase. Full PDF + 7 markdown chapters + methodology data.**
 
 **[Buy the Q2 2026 US Trending Report →]**
 
-**Q3 2026 report** will publish 2026-10-01. Subscribe for the annual bundle ($89/quarter, $356/year) — includes retroactive access to this Q2 report if you subscribe by 2026-08-01.
+**Q3 2026 report** will publish 2026-10-01. Annual bundle available — includes retroactive access to this Q2 report if you subscribe by 2026-08-01.
 
 ---
 
@@ -115,7 +111,7 @@ Most Viewed Today has collected continuously since October 2025. Q2 2026 is the 
 
 Hey [name],
 
-I wrote a Q2 report on what actually worked on YouTube's US trending chart between April and June. Published today (Q2's closing day). $99. 14-day refund.
+I wrote a Q2 report on what actually worked on YouTube's US trending chart between April and June. Published today (Q2's closing day).
 
 Three findings I think you'd want:
 
@@ -128,8 +124,6 @@ Three findings I think you'd want:
 The report is 7 chapters, ~11k words, every claim sourced. Data collected 30-min-resolution since October 2025 — this is the first quarter with enough baseline to publish confidently.
 
 Link: [URL]
-
-Refund within 14 days if it doesn't hit. No hard feelings.
 
 Karen
 Most Viewed Today
@@ -182,8 +176,6 @@ The US mostPopular chart is not what most agency briefs assume. If you're target
 
 **Tweet 6 (offer):**
 
-$99, 14-day refund.
-
 7 chapters. ~11k words. Data reproduction available on request.
 
 For content strategists, MCN scouts, solo creators, brand teams.
@@ -192,7 +184,7 @@ For content strategists, MCN scouts, solo creators, brand teams.
 
 **Tweet 7 (bonus — the Gaming Lockout chapter):**
 
-Chapter 5 is the story of the May 2026 Gaming Lockout. 10 days where YouTube's US trending head went 62-75% Gaming. Our reconstruction pipeline literally couldn't extract diverse rank slices for 46% of the window under standard parameters.
+Chapter 5 is the story of the May 2026 Gaming Lockout. 10 days where YouTube's US trending head went 62-75% Gaming. Our chart-head classifier flagged 99% of buckets in the window as structurally indistinguishable from a Gaming-only fetch — the classifier's own behavior measures the event's extremity.
 
 First published detail on the event.
 
@@ -202,14 +194,14 @@ First published detail on the event.
 
 *For inclusion on the landing page or in a "before you buy" section.*
 
-**Q: Why $99 for a report? I can get YouTube trending screenshots for free.**
-A: You cannot get 30-minute-resolution chart snapshots preserved over 10 weeks for free from any source. The value isn't the data — it's the multi-month reconstruction. If a screenshot of trending today is your budget for quarterly briefing input, this report is not for you.
+**Q: Why pay for a report? I can get YouTube trending screenshots for free.**
+A: You cannot get 30-minute-resolution chart snapshots preserved over 10 weeks for free from any source. The value isn't the data — it's the multi-month baseline. If a screenshot of trending today is your budget for quarterly briefing input, this report is not for you.
 
 **Q: Is this a subscription?**
 A: No. One-time purchase. Full report delivered on purchase.
 
 **Q: What if the data quality is off?**
-A: The report methodology footers document every filter, sample size, and confidence caveat. Data quality issues that we found during preparation (velocity outliers, engagement column bugs, rank reconstruction gaps in May) are documented in the relevant chapters. If you find a data error that materially changes a finding, we will refund the price and issue a corrected version at no charge.
+A: The report methodology footers document every filter, sample size, and confidence caveat. Known data-quality limits (velocity outlier filtering, category-classifier resolution rates during the May Gaming Lockout) are documented in the relevant chapters. If you find a data error that materially changes a finding, we will issue a corrected version at no charge.
 
 **Q: How is this different from VidIQ or TubeBuddy?**
 A: VidIQ and TubeBuddy are creator-facing per-video tools. They don't track chart composition, don't preserve chart rank over time, and don't publish quarterly analytics on the trending surface. This is a different product for a different buyer.
@@ -221,15 +213,7 @@ A: Not this report. This report is US-region only. A global (multi-region) repor
 A: Not currently. Contact karen.redona@gmail.com if you have a specific licensing need.
 
 **Q: What if I want a Q3 report?**
-A: Q3 2026 report publishes 2026-10-01 at $99, or subscribe annually at $89/quarter.
-
----
-
-## Refund process (for internal reference)
-
-Any purchaser can request a refund within 14 days of purchase, no reason required. Refund is processed within 3 business days back to the original payment method. Purchaser retains report access for the 14-day window; refund does not require returning or deleting the report.
-
-*Do not gate the refund. Do not require justification. Refund friction is worse for the business than a refund cost.*
+A: Q3 2026 report publishes 2026-10-01. Annual subscription available.
 
 ---
 
