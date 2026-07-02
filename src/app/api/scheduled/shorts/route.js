@@ -50,7 +50,7 @@ async function triggerShortsCollection(env) {
     try {
       console.log(`[Shorts Collection] Processing category ${categoryId} shorts...`);
 
-      const trendingShorts = await youtube.getMostPopularShortsByCategory(categoryId, 200);
+      const trendingShorts = await youtube.getMostPopularShortsByCategory(categoryId, 400);
 
       if (trendingShorts.length > 0) {
         const shortsData = trendingShorts.map(video => youtube.transformToDbFormat(video)).filter(Boolean);

@@ -1,3 +1,4 @@
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Play } from 'lucide-react';
@@ -49,7 +50,7 @@ function getStatus(rank) {
 
 const TABLE_COLS = 'grid-cols-[36px_80px_1fr_100px] md:grid-cols-[40px_84px_1fr_120px_110px]';
 
-function LoadingRows() {
+function LoadingRows({ metricLabel = 'Total views' }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className={`grid ${TABLE_COLS} items-center gap-4 border-b border-border bg-secondary/50 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground`}>
@@ -57,7 +58,7 @@ function LoadingRows() {
         <div>Thumb</div>
         <div>Title</div>
         <div className="hidden md:block">Category</div>
-        <div className="text-right">Views today</div>
+        <div className="text-right">{metricLabel}</div>
       </div>
       <ul>
         {Array.from({ length: 5 }).map((_, i) => (
@@ -85,11 +86,11 @@ export default function ModernChartRanking({
   lastUpdated = null,
   isShorts = false,
   metricKey = 'view_count',
-  metricLabel = 'views today',
+  metricLabel = 'Total views',
   secondaryMetricKey = null,
   secondaryMetricLabel = '',
 }) {
-  if (loading) return <LoadingRows />;
+  if (loading) return <LoadingRows metricLabel={metricLabel} />;
 
   if (error) {
     return (
@@ -114,29 +115,35 @@ export default function ModernChartRanking({
         <div>Thumb</div>
         <div>Title</div>
         <div className="hidden md:block">Category</div>
-        <div className="text-right">Views today</div>
+        <div className="text-right">{metricLabel}</div>
       </div>
 
       <ul>
         {videos.map((video, index) => {
-          const rank = index + 1;
+          const rank = video.rank ?? index + 1;
           const badge = getCategoryBadge(video.category_id);
           const status = getStatus(rank);
-          // Prefer views_today (from video_daily_stats.views_delta) when the
-          // API supplies it — matches the "Views today" column label. Falls
-          // back to lifetime view_count for legacy callers.
-          const viewCount = Number(video?.views_today ?? video?.[metricKey] ?? 0);
+          const viewCount = Number(video?.[metricKey] ?? 0);
           const secondaryValue = secondaryMetricKey ? Number(video?.[secondaryMetricKey] || 0) : null;
+          const isAlsoTrending = video.tier === 'also_trending';
+          const showTierSeparator =
+            isAlsoTrending && (index === 0 || videos[index - 1]?.tier !== 'also_trending');
 
           return (
-            <li key={video.id} className="border-b border-border last:border-b-0">
+            <React.Fragment key={video.id}>
+              {showTierSeparator ? (
+                <li className="border-b border-border bg-secondary/30 px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Also trending{title ? ` — ${title.replace(/\s+videos?$/i, '')}` : ''}
+                </li>
+              ) : null}
+            <li className="border-b border-border last:border-b-0">
               <Link
                 href={videoUrl(video)}
                 prefetch={false}
                 className={`group grid ${TABLE_COLS} items-center gap-4 px-3 py-2.5 transition-colors hover:bg-hover-row focus-visible:bg-hover-row focus-visible:outline-none`}
               >
                 <div className="flex items-center justify-center">
-                  {rank === 1 ? (
+                  {rank === 1 && !isAlsoTrending ? (
                     <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/12 text-[12px] font-semibold text-brand">
                       1
                     </span>
@@ -204,6 +211,7 @@ export default function ModernChartRanking({
                 </div>
               </Link>
             </li>
+            </React.Fragment>
           );
         })}
       </ul>

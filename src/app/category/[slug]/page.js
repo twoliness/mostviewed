@@ -67,7 +67,7 @@ export default function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <ChartHero title={`${categoryName} leaderboard`} subtitle="Most viewed videos today" />
+      <ChartHero title={`${categoryName} leaderboard`} subtitle="Trending now on YouTube" />
 
       <div className="mx-auto max-w-[1240px] px-6 pb-16">
         <ModernChartRanking

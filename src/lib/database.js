@@ -299,80 +299,110 @@ export class DatabaseService {
     return this._categoryLeaderboardImpl(categoryId, limit, 1);
   }
 
-  // Category leaderboards used to read `category:N:videos` from rank_history,
-  // filter by `videos.category_id`, and fall back to a lifetime-view supplement
-  // when the chart was thin. That supplement surfaced months-old MrBeast hits
-  // on Entertainment/Howto/Pets because YouTube's `videoCategoryId=N` fetch
-  // heavily mixes categories (Entertainment has near-zero true-category videos
-  // in its own chart fetch).
+  // Category leaderboards are HYBRID:
+  //   Tier 1 ("chart")         — latest capture of `category:N:{videos|shorts}`
+  //                              from rank_history, filtered to home category,
+  //                              in YouTube's rank order (renumbered 1..K).
+  //                              This is YouTube's actual chart, cross-category
+  //                              leaks removed. Small for thin categories
+  //                              (Entertainment often ≤ 5 rows).
+  //   Tier 2 ("also_trending") — home-category videos that appeared on ANY
+  //                              chart in the last 6h but NOT already in
+  //                              Tier 1. Sorted by lifetime view_count.
+  //                              Fills the page for thin categories so SEO
+  //                              and UX don't suffer.
   //
-  // New strategy:
-  //   1. "Currently trending" = appeared in ANY rank_history chart in the last
-  //      6 hours (~12 ticks). Picks up videos whether they landed on the
-  //      home-category chart, a different category's chart, or country charts.
-  //   2. Filter by `videos.category_id = ?` — true home category only.
-  //   3. Sort by today's `views_delta` from video_daily_stats. That matches
-  //      the "Views today" column label exactly. Lifetime view_count breaks
-  //      the tie for ordering, and is also returned as a separate field for
-  //      callers that want totals.
+  // The DB never fabricates ranks — Tier 2 rows carry yt_rank = null and are
+  // clearly separable via the `tier` field so the UI can label them as "Also
+  // trending in {category}" instead of misrepresenting them as chart rows.
+  // Reports quote raw rank_history — this method is a display-only compose.
   //
   // isShort: 0 = videos only, 1 = shorts only, null = both.
   async _categoryLeaderboardImpl(categoryId, limit, isShort) {
-    const trendingCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-    const dayStart = new Date();
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayStartIso = dayStart.toISOString();
+    const chartVariants = isShort === null
+      ? [`category:${categoryId}:videos`, `category:${categoryId}:shorts`]
+      : [`category:${categoryId}:${isShort === 1 ? 'shorts' : 'videos'}`];
     const shortFilter = isShort === null ? '' : 'AND v.is_short = ?';
 
-    // Two-pass: SQL returns the trending category set with lifetime view_count.
-    // Then JS enriches with views_today via one bounded query using the
-    // (video_id, captured_at) index. Avoids a CTE-to-CTE join that D1 was
-    // rejecting, and each per-video MIN uses the covering index — fast.
-    const stmt = this.db.prepare(`
+    // ---- Tier 1: YouTube's real chart at latest capture ----
+    const tier1Rows = [];
+    for (const chart of chartVariants) {
+      const latest = await this.db.prepare(`
+        SELECT MAX(captured_at) AS captured_at
+        FROM video_rank_history
+        WHERE chart = ?
+      `).bind(chart).first();
+      if (!latest?.captured_at) continue;
+
+      const rows = await this.db.prepare(`
+        SELECT
+          v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
+          v.category_id, v.is_short,
+          m.view_count, m.captured_at,
+          rh.rank AS yt_rank
+        FROM video_rank_history rh
+        INNER JOIN videos v ON v.id = rh.video_id
+        LEFT JOIN mv_latest_video_stats m ON m.video_id = v.id
+        WHERE rh.chart = ? AND rh.captured_at = ?
+          AND v.category_id = ?
+        ORDER BY rh.rank ASC
+      `).bind(chart, latest.captured_at, categoryId).all();
+
+      for (const r of (rows.results || [])) tier1Rows.push(r);
+    }
+
+    // Merge across variants (videos+shorts when isShort===null) by raw rank.
+    tier1Rows.sort((a, b) => a.yt_rank - b.yt_rank);
+    const tier1Trimmed = tier1Rows.slice(0, limit).map((r, i) => ({
+      ...r,
+      rank: i + 1,
+      tier: 'chart',
+    }));
+
+    if (tier1Trimmed.length >= limit) return tier1Trimmed;
+
+    // ---- Tier 2: home-category videos trending anywhere in last 6h ----
+    const tier1Ids = new Set(tier1Trimmed.map(r => r.id));
+    const remaining = limit - tier1Trimmed.length;
+    const trendingCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+    // Bounded LIMIT — we ORDER BY view_count DESC so the wider net doesn't
+    // silently drag in low-signal old videos. `NOT IN (...)` can't accept an
+    // empty list in SQLite, so we branch.
+    const excludeClause = tier1Ids.size > 0
+      ? `AND v.id NOT IN (${[...tier1Ids].map(() => '?').join(',')})`
+      : '';
+    const sql = `
       WITH trending AS (
-        SELECT video_id, MIN(rank) AS best_rank
+        SELECT DISTINCT video_id
         FROM video_rank_history
         WHERE captured_at >= ?
-        GROUP BY video_id
       )
       SELECT
         v.id, v.title, v.description, v.channel_title, v.thumb_url, v.duration,
         v.category_id, v.is_short,
-        m.view_count, m.captured_at,
-        t.best_rank AS rank
+        m.view_count, m.captured_at
       FROM videos v
       INNER JOIN trending t ON t.video_id = v.id
       LEFT JOIN mv_latest_video_stats m ON m.video_id = v.id
-      WHERE v.category_id = ? ${shortFilter}
+      WHERE v.category_id = ? ${shortFilter} ${excludeClause}
       ORDER BY m.view_count DESC
       LIMIT ?
-    `);
-    const binds = isShort === null
-      ? [trendingCutoff, categoryId, limit * 3]
-      : [trendingCutoff, categoryId, isShort, limit * 3];
-    const rows = (await stmt.bind(...binds).all()).results;
-    if (rows.length === 0) return rows;
+    `;
+    const binds = [trendingCutoff, categoryId];
+    if (isShort !== null) binds.push(isShort);
+    for (const id of tier1Ids) binds.push(id);
+    binds.push(remaining);
 
-    // Compute views_today for the shortlist. One query, all IDs in an IN list.
-    const ids = rows.map(r => r.id);
-    const placeholders = ids.map(() => '?').join(',');
-    const startRes = await this.db.prepare(`
-      SELECT video_id, MIN(view_count) AS start_views
-      FROM video_stats
-      WHERE captured_at >= ? AND video_id IN (${placeholders})
-      GROUP BY video_id
-    `).bind(dayStartIso, ...ids).all();
+    const tier2Res = await this.db.prepare(sql).bind(...binds).all();
+    const tier2Rows = (tier2Res.results || []).map((r, i) => ({
+      ...r,
+      yt_rank: null,
+      rank: tier1Trimmed.length + i + 1,
+      tier: 'also_trending',
+    }));
 
-    const startByVideo = new Map();
-    for (const s of (startRes.results || [])) startByVideo.set(s.video_id, s.start_views);
-
-    const enriched = rows.map(r => {
-      const start = startByVideo.get(r.id);
-      const viewsToday = (start != null && r.view_count > start) ? r.view_count - start : null;
-      return { ...r, views_today: viewsToday };
-    });
-    enriched.sort((a, b) => (b.views_today ?? 0) - (a.views_today ?? 0) || b.view_count - a.view_count);
-    return enriched.slice(0, limit);
+    return [...tier1Trimmed, ...tier2Rows];
   }
 
   /**

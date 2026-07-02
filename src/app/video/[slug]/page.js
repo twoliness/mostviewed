@@ -299,9 +299,29 @@ export default async function VideoDetailPage({ params }) {
             signal: current rank if active globally; otherwise category. */}
         <section className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border">
           {(() => {
-            // Prefer global, then home-category, then peak chart anywhere.
-            const primary = globalStats || categoryStats || fallbackStats;
+            // Pick the chart the video is CURRENTLY on so the stat grid
+            // reconciles with what the leaderboards are showing. Only when
+            // the video is off every chart do we fall back to the historical
+            // "peak" chart for display.
+            const activePrimary =
+                 (globalStats?.currentRank != null ? globalStats : null)
+              || (categoryStats?.currentRank != null ? categoryStats : null)
+              || (fallbackStats?.currentRank != null ? fallbackStats : null);
+            const primary = activePrimary || globalStats || categoryStats || fallbackStats;
             const isCurrent = primary?.currentRank != null;
+
+            // views_today is computed on the fly in getVideoDetail from raw
+            // video_stats (MAX - MIN since UTC midnight). It's populated as
+            // soon as ANY snapshot lands today, so it doesn't wait for the
+            // end-of-day rollup cron.
+            const viewsTodayRaw = detail.views_today;
+            const viewsTodayLabel = viewsTodayRaw != null && viewsTodayRaw > 0
+              ? formatViewCountShort(viewsTodayRaw)
+              : '—';
+            const viewsTodaySub = viewsTodayRaw != null && viewsTodayRaw > 0
+              ? 'since 00:00 UTC'
+              : 'no delta yet today';
+
             return (
               <>
                 <StatCell
@@ -313,11 +333,6 @@ export default async function VideoDetailPage({ params }) {
                     : (primary?.lastSeen ? `since ${formatShortDate(primary.lastSeen)}` : null)}
                 />
                 <StatCell
-                  label="Total Views"
-                  value={formatViewCountShort(summary?.current_views ?? 0)}
-                  sub={viewsAsOf}
-                />
-                <StatCell
                   label="Peak Rank"
                   value={primary?.peak ? `#${primary.peak}` : '—'}
                   valueClass="text-brand"
@@ -326,9 +341,24 @@ export default async function VideoDetailPage({ params }) {
                     : null}
                 />
                 <StatCell
+                  label="Total Views"
+                  value={formatViewCountShort(summary?.current_views ?? 0)}
+                  sub={viewsAsOf}
+                />
+                <StatCell
+                  label="Views Today"
+                  value={viewsTodayLabel}
+                  sub={viewsTodaySub}
+                />
+                <StatCell
                   label="Days on Chart"
                   value={String(primary?.daysOnChart ?? 0)}
                   sub={isCurrent ? 'and counting' : null}
+                />
+                <StatCell
+                  label="Days at Peak"
+                  value={String(primary?.daysAtPeak ?? 0)}
+                  sub={primary?.peak ? `at #${primary.peak}` : null}
                 />
               </>
             );

@@ -16,7 +16,18 @@ export async function getVideoDetail(db, videoId) {
   `).bind(videoId).first();
   if (!video) return null;
 
-  const [summary, creator, daily, rankHistory, chartTotals, moreFromCreator] = await Promise.all([
+  // Compute views_today on the fly. daily_stats is only populated by the
+  // end-of-UTC-day rollup cron, so relying on it means the Views Today cell is
+  // empty for videos that got refreshed today but never rolled up. This
+  // subtracts the earliest UTC-today snapshot from the latest one — matches
+  // what the leaderboard used to compute.
+  const utcMidnightIso = (() => {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
+  })();
+
+  const [summary, creator, daily, rankHistory, chartTotals, moreFromCreator, viewsTodayRow] = await Promise.all([
     db.prepare(`SELECT * FROM video_summary WHERE video_id = ?`).bind(videoId).first(),
     db.prepare(`
       SELECT channel_id, channel_title, avatar_url, banner_url,
@@ -65,7 +76,16 @@ export async function getVideoDetail(db, videoId) {
       ORDER BY vs.current_views DESC
       LIMIT 5
     `).bind(video.channel_id, videoId).all(),
+    db.prepare(`
+      SELECT MIN(view_count) AS start_views, MAX(view_count) AS end_views
+      FROM video_stats
+      WHERE video_id = ? AND captured_at >= ?
+    `).bind(videoId, utcMidnightIso).first(),
   ]);
+
+  const viewsToday = (viewsTodayRow?.end_views != null && viewsTodayRow?.start_views != null)
+    ? Math.max(0, viewsTodayRow.end_views - viewsTodayRow.start_views)
+    : null;
 
   return {
     video: {
@@ -75,6 +95,7 @@ export async function getVideoDetail(db, videoId) {
     },
     summary: summary || null,
     creator: creator || null,
+    views_today: viewsToday,
     daily: daily.results || [],
     rank_history: rankHistory.results || [],
     chart_totals: chartTotals.results || [],

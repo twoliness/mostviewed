@@ -93,7 +93,7 @@ Most Viewed Today has collected continuously since October 2025. Q2 2026 is the 
 
 ### Section 6 — What you get
 
-**One-time purchase. Full PDF + 7 markdown chapters + methodology data.**
+**One-time purchase. Full PDF + 7 chapters + methodology data.**
 
 **[Buy the Q2 2026 US Trending Report →]**
 

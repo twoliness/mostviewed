@@ -50,7 +50,7 @@ async function triggerVideosCollection(env) {
     try {
       console.log(`[Videos Collection] Processing category ${categoryId} videos...`);
 
-      const trendingVideos = await youtube.getMostPopularVideosByCategory(categoryId, 200);
+      const trendingVideos = await youtube.getMostPopularVideosByCategory(categoryId, 400);
 
       if (trendingVideos.length > 0) {
         const trendingData = trendingVideos.map(video => youtube.transformToDbFormat(video)).filter(Boolean);

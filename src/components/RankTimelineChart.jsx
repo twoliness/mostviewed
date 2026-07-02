@@ -68,8 +68,18 @@ export default function RankTimelineChart({
   const hasCategory = data.some((d) => d.category != null);
 
   // Always show dates on the X-axis — no clock times. Capture cadence is
-  // sub-hourly, so multiple points share a day; minTickGap dedupes labels.
+  // sub-hourly, so multiple points share a day. We explicitly emit one tick
+  // per UTC day so no day gets dropped from the axis.
   const xTickFormatter = (v) => DAY_FMT.format(new Date(v));
+  const xTicks = React.useMemo(() => {
+    if (!data.length) return [];
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const startDay = Math.floor(data[0].t / ONE_DAY) * ONE_DAY;
+    const endDay = Math.floor(data[data.length - 1].t / ONE_DAY) * ONE_DAY;
+    const ticks = [];
+    for (let d = startDay; d <= endDay; d += ONE_DAY) ticks.push(d);
+    return ticks;
+  }, [data]);
 
   // Baseline for the area fill — without this, recharts fills from value=0
   // which (with reversed Y) is at the top, drawing the area upward.
@@ -104,7 +114,10 @@ export default function RankTimelineChart({
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          minTickGap={32}
+          // One tick per UTC day in the preview window — no minTickGap dedupe
+          // (that was hiding Jun 29/30/Jul 1 labels on the 7-day chart).
+          ticks={xTicks}
+          interval={0}
           tickFormatter={xTickFormatter}
         />
         <YAxis
