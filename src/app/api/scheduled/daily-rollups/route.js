@@ -130,15 +130,17 @@ async function rebuildCreatorSummary(db) {
 }
 
 async function rebuildCountryDay(db, country, day) {
-  // Pull all video_ids that appeared in any country:<code>:* chart for the given day.
-  const ids = await db.prepare(`
-    SELECT DISTINCT video_id
+  const chartPrefix = `${CHART_PREFIX_BY_COUNTRY[country]}%`;
+
+  // Check whether any chart rows exist for this country+day before doing heavy work.
+  const countRow = await db.prepare(`
+    SELECT COUNT(DISTINCT video_id) AS n
     FROM video_rank_history
     WHERE chart LIKE ? AND DATE(captured_at) = ?
-  `).bind(`${CHART_PREFIX_BY_COUNTRY[country]}%`, day).all();
+  `).bind(chartPrefix, day).first();
 
-  const videoIds = (ids.results || []).map(r => r.video_id);
-  if (videoIds.length === 0) {
+  const videoCount = countRow?.n ?? 0;
+  if (videoCount === 0) {
     await db.prepare(`
       INSERT INTO country_daily_summary (country_code, day, videos_tracked, total_views, updated_at)
       VALUES (?, ?, 0, 0, CURRENT_TIMESTAMP)
@@ -150,12 +152,17 @@ async function rebuildCountryDay(db, country, day) {
     return { country, day, videos: 0 };
   }
 
-  // Aggregate via JOIN to video_summary. Done in one statement using CTEs.
-  const placeholders = videoIds.map(() => '?').join(',');
+  // Use a subquery to avoid binding 100+ video IDs (D1 caps bound params at 100).
   const agg = await db.prepare(`
-    WITH videos_in_day AS (
+    WITH chart_videos AS (
+      SELECT DISTINCT video_id
+      FROM video_rank_history
+      WHERE chart LIKE ?1 AND DATE(captured_at) = ?2
+    ),
+    videos_in_day AS (
       SELECT vs.video_id, vs.channel_id, vs.category_id, vs.current_views
-      FROM video_summary vs WHERE vs.video_id IN (${placeholders})
+      FROM video_summary vs
+      JOIN chart_videos cv ON cv.video_id = vs.video_id
     ),
     totals AS (
       SELECT COUNT(*) AS videos_tracked, COALESCE(SUM(current_views),0) AS total_views
@@ -173,7 +180,7 @@ async function rebuildCountryDay(db, country, day) {
            (SELECT channel_id FROM top_creator) AS top_creator_id,
            (SELECT n FROM top_creator) AS top_creator_video_count
     FROM totals t
-  `).bind(...videoIds).first();
+  `).bind(chartPrefix, day).first();
 
   await db.prepare(`
     INSERT INTO country_daily_summary
@@ -192,16 +199,22 @@ async function rebuildCountryDay(db, country, day) {
     agg.top_video_id, agg.top_creator_id, agg.top_creator_video_count
   ).run();
 
-  // Per-category totals.
+  // Per-category totals — also use subquery, not a bound IN list.
   await db.prepare(`DELETE FROM country_category_daily WHERE country_code = ? AND day = ?`)
     .bind(country, day).run();
   const catRes = await db.prepare(`
+    WITH chart_videos AS (
+      SELECT DISTINCT video_id
+      FROM video_rank_history
+      WHERE chart LIKE ?1 AND DATE(captured_at) = ?2
+    )
     SELECT vs.category_id, COALESCE(SUM(vs.current_views),0) AS total_views
     FROM video_summary vs
-    WHERE vs.video_id IN (${placeholders}) AND vs.category_id IS NOT NULL
+    JOIN chart_videos cv ON cv.video_id = vs.video_id
+    WHERE vs.category_id IS NOT NULL
     GROUP BY vs.category_id
     ORDER BY total_views DESC
-  `).bind(...videoIds).all();
+  `).bind(chartPrefix, day).all();
 
   const catStmts = (catRes.results || []).map(r =>
     db.prepare(`INSERT INTO country_category_daily (country_code, day, category_id, total_views) VALUES (?, ?, ?, ?)`)
@@ -209,7 +222,7 @@ async function rebuildCountryDay(db, country, day) {
   );
   if (catStmts.length) await db.batch(catStmts);
 
-  return { country, day, videos: videoIds.length, categories: catStmts.length };
+  return { country, day, videos: videoCount, categories: catStmts.length };
 }
 
 async function run(env) {
