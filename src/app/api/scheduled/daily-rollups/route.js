@@ -243,14 +243,41 @@ async function run(env) {
   return { creatorRows, dailyStatsRows, dailyStatsDay: yesterday, today, countries: countryResults };
 }
 
-export async function POST() {
+// Mirror of the heartbeat write in worker.js so a manual re-run after a cron
+// failure self-heals the watchdog — otherwise last_ok_at stays stuck at the
+// last cron success and the /15-min alerts keep firing until the next tick.
+async function writeHeartbeat(db, ok, err) {
+  if (!db) return;
+  const nowIso = new Date().toISOString();
   try {
-    const { env } = getCloudflareContext();
-    if (!env.DB) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
+    await db.prepare(`
+      INSERT INTO cron_heartbeats (job, last_run_at, last_ok_at, last_status, last_error, cron_pattern)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(job) DO UPDATE SET
+        last_run_at = excluded.last_run_at,
+        last_ok_at = CASE WHEN excluded.last_status = 'ok' THEN excluded.last_ok_at ELSE cron_heartbeats.last_ok_at END,
+        last_status = excluded.last_status,
+        last_error = excluded.last_error,
+        cron_pattern = excluded.cron_pattern
+    `).bind(
+      'scheduled/daily-rollups', nowIso, ok ? nowIso : null,
+      ok ? 'ok' : 'error', err, '25 3 * * *'
+    ).run();
+  } catch (hbErr) {
+    console.error('[Daily Rollups] heartbeat write failed:', hbErr);
+  }
+}
+
+export async function POST() {
+  const { env } = getCloudflareContext();
+  if (!env.DB) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
+  try {
     const result = await run(env);
+    await writeHeartbeat(env.DB, true, null);
     return NextResponse.json({ success: true, ...result, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('[Daily Rollups] error', error);
+    await writeHeartbeat(env.DB, false, error?.message || String(error));
     return NextResponse.json({ success: false, error: error?.message || 'unknown' }, { status: 500 });
   }
 }
